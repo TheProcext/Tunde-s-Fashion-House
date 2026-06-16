@@ -1,0 +1,2519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tunde's Fashion House — Atelier Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --gold: #A8762E;
+    --gold-light: #C99A4D;
+    --gold-pale: #FBF3E3;
+    --ink: #221C14;
+    --ink-soft: #4A3B26;
+    --clay: #8C5E3C;
+    --cream: #F8F4EC;
+    --cream-dark: #EFE6D3;
+    --panel: #FFFFFF;
+    --sage: #4F7359;
+    --sage-pale: #E9F1EA;
+    --red: #A8392B;
+    --red-pale: #FBEAE7;
+    --amber: #B8780F;
+    --amber-pale: #FBEEDA;
+    --border: #E3D8C2;
+    --text-muted: #8A7A60;
+    --white: #FFFFFF;
+    --shadow: 0 1px 2px rgba(34,28,20,0.04), 0 4px 16px rgba(34,28,20,0.05);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ═══════════════ SIDEBAR ═══════════════ */
+  #sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 232px;
+    background: linear-gradient(180deg, #221C14 0%, #1A1510 100%);
+    display: flex; flex-direction: column;
+    z-index: 100;
+  }
+
+  .brand { padding: 30px 22px 22px; border-bottom: 1px solid rgba(201,154,77,0.18); }
+  .brand-mark {
+    width: 38px; height: 38px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 18px; color: #221C14;
+    margin-bottom: 14px;
+  }
+  .brand-title { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 700; color: var(--gold-light); line-height: 1.25; letter-spacing: 0.01em; }
+  .brand-sub { font-size: 10px; color: #8A7A60; letter-spacing: 0.14em; text-transform: uppercase; margin-top: 5px; }
+
+  nav { flex: 1; padding: 18px 0; overflow-y: auto; }
+  .nav-section-label { font-size: 9px; color: rgba(201,154,77,0.45); letter-spacing: 0.16em; text-transform: uppercase; padding: 14px 22px 6px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 11px;
+    padding: 10px 22px; cursor: pointer;
+    color: rgba(255,255,255,0.58); font-size: 13.5px; font-weight: 500;
+    border-left: 3px solid transparent;
+    transition: all 0.15s; position: relative;
+  }
+  .nav-item:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.035); }
+  .nav-item.active { color: var(--gold-light); border-left-color: var(--gold-light); background: rgba(201,154,77,0.09); }
+  .nav-item .icon { font-size: 15px; width: 20px; text-align: center; }
+  .nav-badge {
+    margin-left: auto; background: var(--red); color: white;
+    font-size: 10px; font-weight: 700; border-radius: 20px;
+    padding: 1px 7px; min-width: 18px; text-align: center;
+  }
+
+  .sidebar-footer { padding: 16px 22px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 10px; color: #6B5D45; }
+
+  /* ═══════════════ MAIN ═══════════════ */
+  #main { margin-left: 232px; min-height: 100vh; }
+
+  .topbar {
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 18px 36px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .page-title { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+  .page-subtitle { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+  .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+  .content { padding: 30px 36px 60px; }
+
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ═══════════════ STAT CARDS ═══════════════ */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 22px; position: relative; overflow: hidden; box-shadow: var(--shadow);
+  }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--gold); }
+  .stat-card.green::before { background: var(--sage); }
+  .stat-card.red::before { background: var(--red); }
+  .stat-card.amber::before { background: var(--amber); }
+  .stat-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .stat-label { font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 9px; }
+  .stat-value { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 700; color: var(--ink); line-height: 1; }
+  .stat-value.money::before { content: '₦'; font-size: 16px; font-weight: 600; vertical-align: top; margin-top: 5px; display: inline-block; margin-right: 1px; color: var(--text-muted); }
+  .stat-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 7px; }
+  .stat-icon { font-size: 18px; opacity: 0.5; }
+
+  /* ═══════════════ SECTION BLOCKS ═══════════════ */
+  .section-block { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 20px; overflow: hidden; box-shadow: var(--shadow); }
+  .section-header { padding: 17px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--cream); }
+  .section-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 700; color: var(--ink-soft); display: flex; align-items: center; gap: 8px; }
+  .section-body { padding: 22px; }
+
+  /* ═══════════════ TABLES ═══════════════ */
+  .table-scroll { overflow-x: auto; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
+  .data-table th { text-align: left; padding: 11px 14px; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; border-bottom: 2px solid var(--border); background: var(--cream); white-space: nowrap; }
+  .data-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--gold-pale); }
+
+  /* ═══════════════ BADGES ═══════════════ */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3.5px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-progress { background: var(--amber-pale); color: var(--amber); }
+  .badge-ready { background: #DCEEFB; color: #1A6BA8; }
+  .badge-delivered { background: var(--sage-pale); color: var(--sage); }
+  .badge-cancelled { background: var(--red-pale); color: var(--red); }
+
+  .pay-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3.5px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .pay-paid { background: var(--sage-pale); color: var(--sage); }
+  .pay-partial { background: var(--amber-pale); color: var(--amber); }
+  .pay-unpaid { background: var(--red-pale); color: var(--red); }
+
+  .days-pill { display: inline-block; padding: 2.5px 9px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; }
+  .days-urgent { background: var(--red-pale); color: var(--red); }
+  .days-warn { background: var(--amber-pale); color: var(--amber); }
+  .days-ok { background: var(--sage-pale); color: var(--sage); }
+  .days-done { background: #F0EDE5; color: #968A72; }
+
+  .vip-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 9px; border-radius: 20px; font-size: 10.5px; font-weight: 700; background: linear-gradient(135deg, var(--gold-pale), #F5E6C8); color: var(--gold); border: 1px solid #E8CE9A; }
+
+  .stock-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .stock-ok { background: var(--sage-pale); color: var(--sage); }
+  .stock-low { background: var(--amber-pale); color: var(--amber); }
+  .stock-out { background: var(--red-pale); color: var(--red); }
+
+  .role-pill { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 11px; background: var(--cream-dark); color: var(--ink-soft); font-weight: 600; }
+  .workload-bar-bg { background: var(--cream-dark); border-radius: 6px; height: 7px; overflow: hidden; flex: 1; }
+  .workload-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold-light), var(--gold)); border-radius: 6px; }
+
+  /* ═══════════════ BUTTONS ═══════════════ */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 9px; font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; white-space: nowrap; }
+  .btn-primary { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: white; box-shadow: 0 2px 8px rgba(168,118,46,0.25); }
+  .btn-primary:hover { box-shadow: 0 4px 12px rgba(168,118,46,0.35); transform: translateY(-1px); }
+  .btn-ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--cream-dark); }
+  .btn-danger { background: var(--red-pale); color: var(--red); border: 1px solid #F0CCC5; }
+  .btn-danger:hover { background: #F5DAD4; }
+  .btn-success { background: var(--sage-pale); color: var(--sage); border: 1px solid #C9DECB; }
+  .btn-success:hover { background: #D9ECDB; }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-icon { padding: 7px 9px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* ═══════════════ MODAL ═══════════════ */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(34,28,20,0.55); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--panel); border-radius: 18px; width: 92%; max-width: 760px; max-height: 90vh; overflow-y: auto; box-shadow: 0 30px 70px rgba(0,0,0,0.25); animation: modalIn 0.2s ease; }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.97) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .modal-header { padding: 22px 26px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--panel); z-index: 1; }
+  .modal-title { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 700; }
+  .modal-body { padding: 24px 26px; }
+  .modal-footer { padding: 16px 26px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--cream); }
+
+  /* ═══════════════ FORM ═══════════════ */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-grid.cols-1 { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.span-2 { grid-column: span 2; }
+  .field.span-3 { grid-column: span 3; }
+  label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+  input, select, textarea {
+    padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 13.5px;
+    font-family: 'Inter', sans-serif; color: var(--ink); background: var(--white); width: 100%; transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(168,118,46,0.1); }
+  textarea { resize: vertical; min-height: 70px; }
+  .field-hint { font-size: 11px; color: var(--text-muted); }
+
+  .measure-section-title { font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--gold); font-weight: 700; padding: 13px 0 8px; border-top: 1px solid var(--border); margin-top: 12px; }
+  .measure-section-title:first-of-type { border-top: none; margin-top: 0; }
+
+  /* ═══════════════ LINE ITEMS (order builder) ═══════════════ */
+  .line-items-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .line-items-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); padding: 6px 8px; border-bottom: 1.5px solid var(--border); }
+  .line-items-table td { padding: 7px 8px; vertical-align: top; }
+  .line-items-table input { padding: 7px 9px; font-size: 13px; }
+  .li-remove { background: none; border: none; cursor: pointer; color: var(--red); font-size: 16px; padding: 4px; line-height: 1; }
+  .li-remove:hover { color: #7A2A1F; }
+  .add-line-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1.5px dashed var(--border); border-radius: 9px; background: transparent; color: var(--gold); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+  .add-line-btn:hover { background: var(--gold-pale); border-color: var(--gold-light); }
+
+  .order-summary-box { background: var(--cream); border-radius: 12px; padding: 16px 18px; margin-top: 16px; }
+  .summary-row { display: flex; justify-content: space-between; font-size: 13.5px; padding: 5px 0; }
+  .summary-row.total { font-weight: 700; font-family: 'Fraunces', serif; font-size: 16px; padding-top: 10px; border-top: 1px solid var(--border); margin-top: 6px; }
+  .summary-row.discount-row span:last-child { color: var(--red); }
+
+  /* ═══════════════ DASHBOARD ═══════════════ */
+  .urgency-row { display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 11px; background: var(--red-pale); border: 1px solid #F0CCC5; margin-bottom: 9px; }
+  .urgency-row .client-name { font-weight: 700; font-size: 13.5px; }
+  .urgency-row .garment { font-size: 11.5px; color: var(--ink-soft); }
+  .urgency-row .phone { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-muted); }
+
+  .pl-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .pl-row:last-child { border-bottom: none; }
+  .pl-row.subtotal { font-weight: 700; background: var(--cream); margin: 0 -22px; padding: 10px 22px; }
+  .pl-row.net { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 700; }
+  .pl-amount { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; }
+  .pl-amount.positive { color: var(--sage); }
+  .pl-amount.negative { color: var(--red); }
+
+  .cat-pill { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 11px; background: var(--cream-dark); color: var(--ink-soft); }
+
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+  .empty-state .empty-icon { font-size: 38px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13.5px; margin-bottom: 16px; }
+
+  #toast-stack { position: fixed; bottom: 28px; right: 28px; z-index: 999; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+  .toast { background: var(--ink); color: white; padding: 13px 18px; border-radius: 11px; font-size: 13px; box-shadow: 0 10px 28px rgba(0,0,0,0.25); border-left: 4px solid var(--gold); max-width: 340px; animation: toastIn 0.25s ease; }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+  .toast.fadeout { animation: toastOut 0.25s ease forwards; }
+  @keyframes toastOut { to { opacity: 0; transform: translateX(40px); } }
+
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+  .search-input {
+    padding: 9px 14px 9px 36px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 13px; width: 250px; background: var(--white);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238A7A60' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: 12px center;
+  }
+  .search-input:focus { outline: none; border-color: var(--gold); }
+  .filter-select { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 13px; background: var(--white); }
+
+  .gender-toggle { display: flex; gap: 8px; }
+  .gender-btn { flex: 1; padding: 9px; border: 1.5px solid var(--border); border-radius: 9px; background: var(--white); cursor: pointer; font-size: 13px; text-align: center; transition: all 0.15s; }
+  .gender-btn.selected { background: var(--gold); color: white; border-color: var(--gold); font-weight: 600; }
+
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .money-display { font-family: 'JetBrains Mono', monospace; }
+  .row-actions { display: flex; gap: 6px; }
+  .confirm-text { font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+  .highlight-box { background: var(--gold-pale); border: 1px solid #E8CE9A; border-radius: 10px; padding: 13px 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.5; }
+  .highlight-box strong { color: var(--gold); }
+
+  /* email preview */
+  .email-preview { border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .email-preview-header { background: var(--cream); padding: 12px 16px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+  .email-preview-header b { color: var(--ink); }
+  .email-preview-body { padding: 20px; font-size: 13.5px; line-height: 1.7; background: white; }
+
+  /* client cards */
+  .client-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); }
+  .client-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .client-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: white; display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-weight: 700; font-size: 17px; flex-shrink: 0; }
+  .client-name-row { display: flex; align-items: center; gap: 8px; }
+  .client-stat-mini { text-align: center; }
+  .client-stat-mini .num { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 15px; }
+  .client-stat-mini .lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* staff cards */
+  .staff-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; box-shadow: var(--shadow); }
+  .staff-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .staff-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--clay), var(--ink-soft)); color: white; display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+
+  /* inventory */
+  .fabric-swatch { width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.08); }
+
+  /* receipt / print */
+  .receipt-paper { background: white; border: 1px solid var(--border); border-radius: 4px; padding: 36px 32px; font-family: 'Inter', sans-serif; color: #111; max-width: 480px; margin: 0 auto; }
+  .receipt-header { text-align: center; margin-bottom: 22px; }
+  .receipt-brand { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: var(--ink); }
+  .receipt-tagline { font-size: 11px; color: var(--text-muted); letter-spacing: 0.05em; margin-top: 2px; }
+  .receipt-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin: 16px 0; padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+  .receipt-items-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+  .receipt-items-table th { text-align: left; font-size: 10px; text-transform: uppercase; color: var(--text-muted); padding: 6px 4px; border-bottom: 1px solid var(--border); }
+  .receipt-items-table td { padding: 7px 4px; border-bottom: 1px solid #f0ebe0; }
+  .receipt-items-table td:last-child, .receipt-items-table th:last-child { text-align: right; }
+  .receipt-totals { margin-top: 8px; }
+  .receipt-totals .pl-row { padding: 5px 0; font-size: 13px; }
+  .receipt-totals .pl-row.net { font-size: 16px; border-top: 1.5px solid var(--ink); padding-top: 10px; margin-top: 4px; }
+  .receipt-status-stamp { text-align: center; margin: 18px 0 6px; }
+  .receipt-footer { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 20px; padding-top: 14px; border-top: 1px dashed var(--border); }
+
+  /* ═══════════════ LOCK SCREEN ═══════════════ */
+  #lock-screen {
+    position: fixed; inset: 0; z-index: 500;
+    background: linear-gradient(160deg, #221C14 0%, #1A1510 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #lock-screen.hidden { display: none; }
+  .lock-card { background: var(--panel); border-radius: 20px; padding: 38px 36px; width: 92%; max-width: 360px; box-shadow: 0 30px 80px rgba(0,0,0,0.4); text-align: center; }
+  .lock-mark { width: 54px; height: 54px; border-radius: 14px; margin: 0 auto 18px; background: linear-gradient(135deg, var(--gold-light), var(--gold)); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-weight: 700; font-size: 24px; color: #221C14; }
+  .lock-title { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 700; color: var(--ink); }
+  .lock-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 4px; margin-bottom: 22px; }
+  .pin-dots { display: flex; justify-content: center; gap: 14px; margin-bottom: 22px; }
+  .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--cream); transition: all 0.15s; }
+  .pin-dot.filled { background: var(--gold); border-color: var(--gold); }
+  .pin-dot.shake { animation: pinShake 0.4s; }
+  @keyframes pinShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .pin-pad { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .pin-key { padding: 16px 0; border-radius: 12px; border: 1.5px solid var(--border); background: var(--cream); font-size: 17px; font-weight: 600; color: var(--ink); cursor: pointer; transition: all 0.1s; font-family: 'JetBrains Mono', monospace; }
+  .pin-key:hover { background: var(--gold-pale); border-color: var(--gold-light); }
+  .pin-key:active { transform: scale(0.95); }
+  .pin-key.wide { font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500; color: var(--text-muted); }
+  .lock-error { color: var(--red); font-size: 12.5px; margin-top: 12px; min-height: 18px; }
+  .lock-setup-note { background: var(--gold-pale); border: 1px solid #E8CE9A; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--ink-soft); margin-bottom: 18px; text-align: left; line-height: 1.5; }
+
+  /* ═══════════════ SYNC STATUS ═══════════════ */
+  .sync-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage); }
+  .sync-dot.syncing { background: var(--amber); animation: pulse 1s infinite; }
+  .sync-dot.offline { background: var(--red); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  @media print {
+    #sidebar, .topbar, .modal-footer, .toolbar, .btn { display: none !important; }
+    .modal-overlay { position: static; background: none; display: block !important; }
+    .modal { box-shadow: none; max-width: 100%; }
+    .modal-header { display: none; }
+    body { background: white; }
+  }
+
+  @media (max-width: 980px) {
+    #sidebar { width: 64px; }
+    .brand-title, .brand-sub, .nav-section-label, .nav-item span:not(.icon), .sidebar-footer { display: none; }
+    .nav-item { justify-content: center; padding: 13px 0; }
+    .brand { padding: 20px 0; display: flex; justify-content: center; }
+    .brand-mark { margin-bottom: 0; }
+    #main { margin-left: 64px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .content { padding: 20px 16px 50px; }
+    .form-grid, .form-grid.cols-3 { grid-template-columns: 1fr; }
+    .field.span-2, .field.span-3 { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ PIN LOCK SCREEN ══════════════════════ -->
+<div id="lock-screen">
+  <div class="lock-card">
+    <div class="lock-mark">T</div>
+    <div class="lock-title" id="lock-title">Tunde's Fashion House</div>
+    <div class="lock-sub" id="lock-sub">Connecting…</div>
+    <div class="lock-setup-note" id="lock-setup-note" style="display:none">
+      <strong>First time here?</strong> Choose a 4-digit PIN now. Anyone with this link will need it to view or edit your shop's data.
+    </div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key wide" onclick="pinClear()">Clear</button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key wide" onclick="pinBackspace()">⌫</button>
+    </div>
+    <div class="lock-error" id="lock-error"></div>
+  </div>
+</div>
+
+<div id="sidebar" style="display:none">
+  <div class="brand">
+    <div class="brand-mark">T</div>
+    <div class="brand-title">Tunde's<br>Fashion House</div>
+    <div class="brand-sub">Atelier Manager</div>
+  </div>
+  <nav>
+    <div class="nav-section-label">Overview</div>
+    <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon">🏠</span><span>Dashboard</span></div>
+    <div class="nav-section-label">Orders</div>
+    <div class="nav-item" onclick="showPage('orders')"><span class="icon">📋</span><span>Orders</span><span class="nav-badge" id="nav-active-badge" style="display:none"></span></div>
+    <div class="nav-item" onclick="showPage('clients')"><span class="icon">👥</span><span>Clients</span></div>
+    <div class="nav-item" onclick="showPage('measurements')"><span class="icon">📏</span><span>Measurements</span></div>
+    <div class="nav-section-label">Workshop</div>
+    <div class="nav-item" onclick="showPage('inventory')"><span class="icon">🧵</span><span>Fabric Stock</span><span class="nav-badge" id="nav-stock-badge" style="display:none;background:var(--amber)"></span></div>
+    <div class="nav-item" onclick="showPage('staff')"><span class="icon">👷</span><span>Staff & Tasks</span></div>
+    <div class="nav-section-label">Finance</div>
+    <div class="nav-item" onclick="showPage('costing')"><span class="icon">🧾</span><span>Job Costing</span></div>
+    <div class="nav-item" onclick="showPage('expenses')"><span class="icon">🏬</span><span>Shop Expenses</span></div>
+    <div class="nav-item" onclick="showPage('pnl')"><span class="icon">📊</span><span>P&L Statement</span></div>
+    <div class="nav-section-label">System</div>
+    <div class="nav-item" onclick="showPage('settings')"><span class="icon">⚙️</span><span>Email Setup</span><span class="nav-badge" id="nav-email-badge" style="display:none;background:var(--red)">!</span></div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sync-status"><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Synced · v4.0</span></div>
+  </div>
+</div>
+
+<div id="main" style="display:none">
+
+  <!-- ══════════════════════ DASHBOARD ══════════════════════ -->
+  <div id="page-dashboard" class="page active">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Good morning, Tunde 👋</div>
+        <div class="page-subtitle" id="dashboard-date"></div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" onclick="openOrderModal()">+ New Order</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="highlight-box" id="email-setup-nudge" style="display:none;background:var(--amber-pale);border-color:#E8CE9A;display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <span><strong style="color:var(--amber)">⚙️ Pickup emails aren't connected yet.</strong> Set up email once and notify clients automatically when their order is ready.</span>
+        <button class="btn btn-primary btn-sm" onclick="showPage('settings')" style="white-space:nowrap">Set Up Now</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-top"><div class="stat-label">Active Orders</div><span class="stat-icon">✂️</span></div>
+          <div class="stat-value" id="d-active">0</div>
+          <div class="stat-sub">Currently in progress</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-top"><div class="stat-label">Ready for Pickup</div><span class="stat-icon">📦</span></div>
+          <div class="stat-value" id="d-ready">0</div>
+          <div class="stat-sub">Awaiting collection</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-top"><div class="stat-label">Delivered</div><span class="stat-icon">🎉</span></div>
+          <div class="stat-value" id="d-delivered">0</div>
+          <div class="stat-sub">All time</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-top"><div class="stat-label">Outstanding Balance</div><span class="stat-icon">💸</span></div>
+          <div class="stat-value money" id="d-balance">0</div>
+          <div class="stat-sub">Owed across all clients</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:20px">
+        <div>
+          <div class="section-block">
+            <div class="section-header"><div class="section-title">🚨 Urgent — Due in ≤ 7 Days</div></div>
+            <div class="section-body" id="urgent-list"></div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-header">
+              <div class="section-title">📦 Ready for Pickup</div>
+              <span style="font-size:11px;color:var(--text-muted)">Click ✉️ to notify client</span>
+            </div>
+            <div class="section-body" id="ready-list"></div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-header"><div class="section-title">⭐ Top Clients</div></div>
+            <div class="section-body" id="top-clients-list"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-block">
+            <div class="section-header"><div class="section-title">💰 Financials This Period</div></div>
+            <div class="section-body">
+              <div class="pl-row"><span>Total Revenue</span><span class="pl-amount positive money-display" id="d-revenue">₦0</span></div>
+              <div class="pl-row" id="d-discount-row" style="display:none"><span>Discounts Given</span><span class="pl-amount negative money-display" id="d-discounts">₦0</span></div>
+              <div class="pl-row"><span>Direct Job Costs</span><span class="pl-amount negative money-display" id="d-costs">₦0</span></div>
+              <div class="pl-row subtotal"><span>Gross Profit</span><span class="pl-amount money-display" id="d-gross">₦0</span></div>
+              <div class="pl-row"><span>Shop Overheads</span><span class="pl-amount negative money-display" id="d-overheads">₦0</span></div>
+              <div class="pl-row net"><span>Net Profit</span><span class="pl-amount positive money-display" id="d-net">₦0</span></div>
+              <div class="divider"></div>
+              <div style="font-size:12px;color:var(--text-muted);text-align:right">Margin: <strong id="d-margin" style="color:var(--sage)">0%</strong></div>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-header"><div class="section-title">📋 Recent Orders</div></div>
+            <div class="section-body" id="recent-orders-list" style="padding:0"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ ORDERS ══════════════════════ -->
+  <div id="page-orders" class="page">
+    <div class="topbar">
+      <div><div class="page-title">Orders</div><div class="page-subtitle">All jobs, bulk and single</div></div>
+      <div class="topbar-actions"><button class="btn btn-primary" onclick="openOrderModal()">+ New Order</button></div>
+    </div>
+    <div class="content">
+      <div class="toolbar">
+        <input class="search-input" id="order-search" placeholder="Search client or garment…" oninput="renderOrders()">
+        <select class="filter-select" id="order-filter" onchange="renderOrders()">
+          <option value="">All statuses</option>
+          <option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option>
+        </select>
+        <select class="filter-select" id="order-pay-filter" onchange="renderOrders()">
+          <option value="">All payments</option>
+          <option>Paid</option><option>Partial</option><option>Unpaid</option>
+        </select>
+      </div>
+      <div class="section-block">
+        <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr>
+            <th>#</th><th>Client</th><th>Items</th><th>Delivery</th><th>Days Left</th>
+            <th>Total (₦)</th><th>Discount</th><th>Paid (₦)</th><th>Balance (₦)</th>
+            <th>Payment</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+        </div>
+        <div id="orders-empty" class="empty-state" style="display:none">
+          <div class="empty-icon">✂️</div><p>No orders yet. Add your first order to get started.</p>
+          <button class="btn btn-primary" onclick="openOrderModal()">+ New Order</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ CLIENTS (CRM) ══════════════════════ -->
+  <div id="page-clients" class="page">
+    <div class="topbar">
+      <div><div class="page-title">Clients</div><div class="page-subtitle">Relationships, not just transactions</div></div>
+    </div>
+    <div class="content">
+      <div class="toolbar">
+        <input class="search-input" id="client-search" placeholder="Search clients…" oninput="renderClients()">
+        <select class="filter-select" id="client-sort" onchange="renderClients()">
+          <option value="spend">Sort: Highest spend</option>
+          <option value="orders">Sort: Most orders</option>
+          <option value="recent">Sort: Most recent</option>
+          <option value="balance">Sort: Outstanding balance</option>
+        </select>
+      </div>
+      <div id="clients-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px"></div>
+      <div id="clients-empty" class="empty-state" style="display:none"><div class="empty-icon">👥</div><p>No clients yet.</p></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ MEASUREMENTS ══════════════════════ -->
+  <div id="page-measurements" class="page">
+    <div class="topbar">
+      <div><div class="page-title">Measurements Book</div><div class="page-subtitle">Saved sizes for every client</div></div>
+      <div class="topbar-actions"><button class="btn btn-primary" onclick="openMeasureModal()">+ Add / Update</button></div>
+    </div>
+    <div class="content">
+      <div class="toolbar">
+        <input class="search-input" id="measure-search" placeholder="Search client…" oninput="renderMeasurements()">
+        <select class="filter-select" id="measure-gender" onchange="renderMeasurements()">
+          <option value="">All</option><option>Male</option><option>Female</option>
+        </select>
+      </div>
+      <div id="measurements-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px"></div>
+      <div id="measurements-empty" class="empty-state" style="display:none">
+        <div class="empty-icon">📏</div><p>No measurements saved yet.</p>
+        <button class="btn btn-primary" onclick="openMeasureModal()">+ Add Measurements</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ INVENTORY ══════════════════════ -->
+  <div id="page-inventory" class="page">
+    <div class="topbar">
+      <div><div class="page-title">Fabric & Materials Stock</div><div class="page-subtitle">Know what you have before you promise a client</div></div>
+      <div class="topbar-actions"><button class="btn btn-primary" onclick="openFabricModal()">+ Add Material</button></div>
+    </div>
+    <div class="content">
+      <div class="highlight-box"><strong>💡 Tip:</strong> Log fabric when you buy it. When you take an order using shop-bought material, deduct the yards used here — the dashboard will warn you before you run out mid-job.</div>
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card"><div class="stat-top"><div class="stat-label">Materials Tracked</div><span class="stat-icon">🧵</span></div><div class="stat-value" id="inv-count">0</div><div class="stat-sub">In stock list</div></div>
+        <div class="stat-card amber"><div class="stat-top"><div class="stat-label">Running Low</div><span class="stat-icon">⚠️</span></div><div class="stat-value" id="inv-low">0</div><div class="stat-sub">Below reorder level</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-label">Stock Value</div><span class="stat-icon">💰</span></div><div class="stat-value money" id="inv-value">0</div><div class="stat-sub">At cost price</div></div>
+      </div>
+      <div class="section-block">
+        <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th></th><th>Material</th><th>Color</th><th>In Stock</th><th>Reorder At</th><th>Cost / Yard</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="fabric-tbody"></tbody>
+        </table>
+        </div>
+        <div id="fabric-empty" class="empty-state" style="display:none">
+          <div class="empty-icon">🧵</div><p>No materials logged yet.</p>
+          <button class="btn btn-primary" onclick="openFabricModal()">+ Add Material</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ STAFF & TASKS ══════════════════════ -->
+  <div id="page-staff" class="page">
+    <div class="topbar">
+      <div><div class="page-title">Staff & Tasks</div><div class="page-subtitle">Who's making what, at a glance</div></div>
+      <div class="topbar-actions"><button class="btn btn-primary" onclick="openStaffModal()">+ Add Staff</button></div>
+    </div>
+    <div class="content">
+      <div id="staff-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px"></div>
+      <div id="staff-empty" class="empty-state" style="display:none">
+        <div class="empty-icon">👷</div><p>It's just you for now — add your tailors and apprentices as the shop grows.</p>
+        <button class="btn btn-primary" onclick="openStaffModal()">+ Add Staff</button>
+      </div>
+
+      <div class="section-block" style="margin-top:24px">
+        <div class="section-header"><div class="section-title">📌 Unassigned Active Orders</div></div>
+        <div class="section-body" id="unassigned-orders-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ JOB COSTING ══════════════════════ -->
+  <div id="page-costing" class="page">
+    <div class="topbar"><div><div class="page-title">Job Costing</div><div class="page-subtitle">Profit per order, after discounts</div></div></div>
+    <div class="content">
+      <div class="highlight-box"><strong>💡 Tip:</strong> Enter material costs per order. Profit is calculated on the discounted price the client actually pays — so margins stay honest even after a bulk discount.</div>
+      <div class="section-block">
+        <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Client</th><th>Items</th><th>Status</th><th>Net Price</th><th>Materials</th><th>Trims</th><th>Transport</th><th>Total Cost</th><th>Profit</th><th>Margin</th></tr></thead>
+          <tbody id="costing-tbody"></tbody>
+        </table>
+        </div>
+        <div class="section-body" style="border-top:1px solid var(--border)">
+          <div style="display:flex;justify-content:flex-end;gap:36px;font-size:13px;flex-wrap:wrap">
+            <span>Net Revenue: <strong class="money-display" id="cost-total-rev">₦0</strong></span>
+            <span>Total Costs: <strong class="money-display" id="cost-total-cost">₦0</strong></span>
+            <span>Total Profit: <strong class="money-display" style="color:var(--sage)" id="cost-total-profit">₦0</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ EXPENSES ══════════════════════ -->
+  <div id="page-expenses" class="page">
+    <div class="topbar">
+      <div><div class="page-title">Shop Expenses</div><div class="page-subtitle">Overheads not tied to one job</div></div>
+      <div class="topbar-actions"><button class="btn btn-primary" onclick="openExpenseModal()">+ Add Expense</button></div>
+    </div>
+    <div class="content">
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+        <div class="section-block">
+          <div class="section-header"><div class="section-title">All Expenses</div></div>
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount (₦)</th><th></th></tr></thead>
+            <tbody id="expenses-tbody"></tbody>
+          </table>
+          <div id="expenses-empty" class="empty-state" style="display:none">
+            <div class="empty-icon">🏬</div><p>No expenses logged yet.</p>
+            <button class="btn btn-primary" onclick="openExpenseModal()">+ Add Expense</button>
+          </div>
+        </div>
+        <div>
+          <div class="section-block">
+            <div class="section-header"><div class="section-title">By Category</div></div>
+            <div class="section-body" id="expense-cats"></div>
+          </div>
+          <div class="section-block" style="margin-top:16px">
+            <div class="section-header"><div class="section-title">Total Overheads</div></div>
+            <div class="section-body"><div class="stat-value money" id="total-overheads">0</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ P&L ══════════════════════ -->
+  <div id="page-pnl" class="page">
+    <div class="topbar"><div><div class="page-title">Profit & Loss</div><div class="page-subtitle">The full picture, after discounts</div></div></div>
+    <div class="content">
+      <div style="max-width:580px">
+        <div class="section-block">
+          <div class="section-header"><div class="section-title">Income Statement</div></div>
+          <div class="section-body">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-muted);margin-bottom:8px">Revenue</div>
+            <div class="pl-row"><span>Gross price agreed (all orders)</span><span class="pl-amount money-display" id="pl-gross-revenue">₦0</span></div>
+            <div class="pl-row"><span>Less: discounts given</span><span class="pl-amount negative money-display" id="pl-discounts">₦0</span></div>
+            <div class="pl-row subtotal"><span>Net Revenue</span><span class="pl-amount money-display" id="pl-revenue">₦0</span></div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-muted);margin:12px 0 8px">Direct Costs</div>
+            <div class="pl-row"><span>Materials, trims & job transport</span><span class="pl-amount negative money-display" id="pl-direct">₦0</span></div>
+            <div class="pl-row subtotal"><span>Gross Profit</span><span class="pl-amount money-display" id="pl-gross">₦0</span></div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-muted);margin:12px 0 8px">Overheads</div>
+            <div class="pl-row"><span>Total shop expenses</span><span class="pl-amount negative money-display" id="pl-overheads">₦0</span></div>
+            <div class="pl-row net" style="margin-top:8px"><span>Net Profit</span><span class="pl-amount positive money-display" id="pl-net">₦0</span></div>
+            <div class="divider"></div>
+            <div style="font-size:13px;color:var(--text-muted)">Profit margin on net sales: <strong id="pl-margin" style="color:var(--sage);font-family:'JetBrains Mono',monospace">0%</strong></div>
+          </div>
+        </div>
+        <div class="section-block">
+          <div class="section-header"><div class="section-title">Expense Breakdown</div></div>
+          <div class="section-body" id="pl-expense-breakdown"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ SETTINGS / EMAIL SETUP ══════════════════════ -->
+  <div id="page-settings" class="page">
+    <div class="topbar"><div><div class="page-title">Email Setup</div><div class="page-subtitle">Connect a real address so pickup notices send automatically</div></div></div>
+    <div class="content">
+      <div style="max-width:620px">
+        <div class="highlight-box">
+          <strong>💡 How this works:</strong> This app sends email through EmailJS, a free service that lets a web page send mail without a server. Create a free account at
+          <a href="https://www.emailjs.com" target="_blank" style="color:var(--gold)">emailjs.com</a>, connect your Gmail/Outlook, then paste the three values below. Takes about 5 minutes, one time only.
+        </div>
+
+        <div class="section-block">
+          <div class="section-header"><div class="section-title">📧 EmailJS Credentials</div></div>
+          <div class="section-body">
+            <div class="form-grid cols-1">
+              <div class="field"><label>Service ID</label><input id="set-service-id" placeholder="e.g. service_abc1234"></div>
+              <div class="field"><label>Template ID</label><input id="set-template-id" placeholder="e.g. template_xyz789"></div>
+              <div class="field"><label>Public Key</label><input id="set-public-key" placeholder="e.g. AbCdEfGhIjKlMnOp"></div>
+            </div>
+            <div class="field-hint" style="margin-top:8px">Found under <strong>Email Services</strong> (Service ID), <strong>Email Templates</strong> (Template ID), and <strong>Account → General</strong> (Public Key) in your EmailJS dashboard.</div>
+            <div style="margin-top:16px;display:flex;gap:10px">
+              <button class="btn btn-primary" onclick="saveEmailSettings()">Save Settings</button>
+              <button class="btn btn-ghost" onclick="sendTestEmail()">Send Test Email</button>
+            </div>
+            <div id="settings-status" style="margin-top:14px"></div>
+          </div>
+        </div>
+
+        <div class="section-block">
+          <div class="section-header"><div class="section-title">📝 Required Template Variables</div></div>
+          <div class="section-body">
+            <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px">When creating your template in EmailJS, use these exact variable names so this app can fill them in:</p>
+            <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;font-size:12.5px">
+              <div style="font-family:'JetBrains Mono',monospace;color:var(--gold)">{{to_email}}</div><div style="color:var(--text-muted)">Client's email address</div>
+              <div style="font-family:'JetBrains Mono',monospace;color:var(--gold)">{{to_name}}</div><div style="color:var(--text-muted)">Client's name</div>
+              <div style="font-family:'JetBrains Mono',monospace;color:var(--gold)">{{subject}}</div><div style="color:var(--text-muted)">Email subject line</div>
+              <div style="font-family:'JetBrains Mono',monospace;color:var(--gold)">{{message}}</div><div style="color:var(--text-muted)">Full email body</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════ MODALS ══════════════════════════ -->
+
+<!-- Order Modal -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="order-modal-title">New Order</div>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('order-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Client Name *</label><input id="o-client" placeholder="Full name" list="client-names-list" oninput="autofillClientContact()"><datalist id="client-names-list"></datalist></div>
+        <div class="field"><label>Phone Number</label><input id="o-phone" placeholder="080xxxxxxxx" type="tel"></div>
+        <div class="field"><label>Email</label><input id="o-email" placeholder="for pickup notifications" type="email"></div>
+        <div class="field"><label>Materials Source</label><select id="o-materials" onchange="toggleFabricField()"><option>Client supplied cloth</option><option>Tunde bought materials</option></select></div>
+        <div class="field"><label>Date Cloth Arrived</label><input id="o-arrived" type="date"></div>
+        <div class="field"><label>Promised Delivery Date *</label><input id="o-delivery" type="date"></div>
+        <div class="field" id="o-fabric-field" style="display:none">
+          <label>Fabric Used (from stock)</label>
+          <select id="o-fabric-used"><option value="">— None / not tracked —</option></select>
+        </div>
+        <div class="field" id="o-fabric-yards-field" style="display:none">
+          <label>Yards Used</label>
+          <input id="o-fabric-yards" type="number" min="0" step="0.5" placeholder="e.g. 6">
+        </div>
+        <div class="field"><label>Assigned To</label><select id="o-staff"><option value="">— Tunde (unassigned) —</option></select></div>
+      </div>
+
+      <div class="measure-section-title">Items in This Order</div>
+      <table class="line-items-table">
+        <thead><tr><th style="width:46%">Garment / Style</th><th style="width:18%">Qty</th><th style="width:28%">Unit Price (₦)</th><th></th></tr></thead>
+        <tbody id="line-items-body"></tbody>
+      </table>
+      <button class="add-line-btn" onclick="addLineItem()">+ Add another item</button>
+
+      <div class="order-summary-box">
+        <div class="summary-row"><span>Items subtotal</span><span class="money-display" id="o-subtotal">₦0</span></div>
+        <div class="form-grid cols-3" style="margin-top:10px;align-items:end">
+          <div class="field">
+            <label>Discount type</label>
+            <select id="o-discount-type" onchange="renderOrderSummary()">
+              <option value="none">No discount</option>
+              <option value="percent">Percentage (%)</option>
+              <option value="flat">Flat amount (₦)</option>
+            </select>
+          </div>
+          <div class="field" id="o-discount-value-field" style="display:none">
+            <label id="o-discount-value-label">Discount value</label>
+            <input id="o-discount-value" type="number" min="0" placeholder="0" oninput="renderOrderSummary()">
+          </div>
+          <div class="field">
+            <label>Reason (optional)</label>
+            <input id="o-discount-reason" placeholder="e.g. Bulk order — 6 items">
+          </div>
+        </div>
+        <div class="summary-row discount-row" id="o-discount-summary-row" style="display:none"><span>Discount applied</span><span id="o-discount-amount">−₦0</span></div>
+        <div class="summary-row total"><span>Total price agreed</span><span class="money-display" id="o-total">₦0</span></div>
+        <div class="divider" style="margin:12px 0"></div>
+        <div class="form-grid">
+          <div class="field"><label>Deposit / Amount Paid (₦)</label><input id="o-deposit" type="number" min="0" placeholder="0" oninput="renderOrderSummary()"></div>
+          <div class="field"><label>Order Status</label><select id="o-status"><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select></div>
+        </div>
+        <div class="summary-row" style="margin-top:8px"><span>Balance remaining</span><span class="money-display" id="o-balance" style="font-weight:700">₦0</span></div>
+        <div style="margin-top:8px" id="o-payment-status-display"></div>
+      </div>
+
+      <div class="field" style="margin-top:16px"><label>Notes</label><input id="o-notes" placeholder="Optional notes…"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('order-modal')">Cancel</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" id="order-receipt-btn" style="display:none" onclick="openReceiptFromOrderModal()">🧾 Print Receipt</button>
+        <button class="btn btn-primary" onclick="saveOrder()">Save Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal-overlay" id="receipt-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">🧾 Receipt</div>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('receipt-modal')">✕</button>
+    </div>
+    <div class="modal-body" style="background:var(--cream-dark)" id="receipt-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('receipt-modal')">Close</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fabric Modal -->
+<div class="modal-overlay" id="fabric-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title" id="fabric-modal-title">Add Material</div><button class="btn btn-ghost btn-icon" onclick="closeModal('fabric-modal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid cols-1">
+        <div class="field"><label>Material Name *</label><input id="f-name" placeholder="e.g. Ankara — Royal Blue Floral"></div>
+        <div class="field"><label>Color Swatch</label><input id="f-color" type="color" value="#A8762E" style="height:40px;padding:4px"></div>
+      </div>
+      <div class="form-grid" style="margin-top:14px">
+        <div class="field"><label>Yards in Stock *</label><input id="f-stock" type="number" min="0" step="0.5" placeholder="0"></div>
+        <div class="field"><label>Reorder Level (yards)</label><input id="f-reorder" type="number" min="0" step="0.5" placeholder="e.g. 10"></div>
+        <div class="field"><label>Cost per Yard (₦)</label><input id="f-cost" type="number" min="0" placeholder="0"></div>
+        <div class="field"><label>Supplier (optional)</label><input id="f-supplier" placeholder="e.g. Balogun Market"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('fabric-modal')">Cancel</button><button class="btn btn-primary" onclick="saveFabric()">Save Material</button></div>
+  </div>
+</div>
+
+<!-- Restock Modal -->
+<div class="modal-overlay" id="restock-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><div class="modal-title">Adjust Stock</div><button class="btn btn-ghost btn-icon" onclick="closeModal('restock-modal')">✕</button></div>
+    <div class="modal-body">
+      <div id="restock-info" class="highlight-box"></div>
+      <div class="form-grid cols-1">
+        <div class="field"><label>Add yards (restock)</label><input id="r-add" type="number" step="0.5" placeholder="e.g. 20"></div>
+        <div class="field"><label>Or set exact stock level (yards)</label><input id="r-set" type="number" step="0.5" placeholder="e.g. 15"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('restock-modal')">Cancel</button><button class="btn btn-primary" onclick="saveRestock()">Update Stock</button></div>
+  </div>
+</div>
+
+<!-- Staff Modal -->
+<div class="modal-overlay" id="staff-modal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header"><div class="modal-title" id="staff-modal-title">Add Staff</div><button class="btn btn-ghost btn-icon" onclick="closeModal('staff-modal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid cols-1">
+        <div class="field"><label>Name *</label><input id="s-name" placeholder="Full name"></div>
+        <div class="field"><label>Role</label><select id="s-role"><option>Tailor</option><option>Apprentice</option><option>Cutter</option><option>Embroiderer</option><option>Sales / Front Desk</option></select></div>
+        <div class="field"><label>Phone</label><input id="s-phone" placeholder="080xxxxxxxx"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('staff-modal')">Cancel</button><button class="btn btn-primary" onclick="saveStaff()">Save Staff</button></div>
+  </div>
+</div>
+
+<!-- Pickup Email Modal -->
+<div class="modal-overlay" id="email-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">📧 Send Pickup Notification</div>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('email-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="highlight-box" id="email-not-configured-warning" style="display:none;background:var(--amber-pale);border-color:#E8CE9A">
+        <strong style="color:var(--amber)">⚙️ Email isn't connected yet.</strong> Go to <strong>Email Setup</strong> in the sidebar to connect a real address — it takes about 5 minutes, one time only. Until then, you can copy the message below.
+      </div>
+      <div class="highlight-box" id="email-no-address-warning" style="display:none;background:var(--red-pale);border-color:#F0CCC5">
+        <strong style="color:var(--red)">⚠️ No email on file.</strong> Add an email address to this client to send automatically, or copy the message below to send via SMS/WhatsApp instead.
+      </div>
+      <div class="email-preview">
+        <div class="email-preview-header">To: <b id="email-to">—</b><br>Subject: <b id="email-subject">—</b></div>
+        <div class="email-preview-body" id="email-body"></div>
+      </div>
+      <div id="email-send-status" style="margin-top:12px;font-size:13px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('email-modal')">Close</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="copyEmailText()">📋 Copy Message</button>
+        <button class="btn btn-success" id="email-send-btn" onclick="sendPickupEmail()">✉️ Send Email Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Measurement Modal -->
+<div class="modal-overlay" id="measure-modal">
+  <div class="modal" style="max-width:800px">
+    <div class="modal-header">
+      <div class="modal-title" id="measure-modal-title">Client Measurements</div>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('measure-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" style="margin-bottom:16px">
+        <div class="field"><label>Client Name *</label><input id="m-name" placeholder="Full name" list="client-names-list2"><datalist id="client-names-list2"></datalist></div>
+        <div class="field"><label>Phone</label><input id="m-phone" placeholder="080xxxxxxxx"></div>
+        <div class="field"><label>Gender</label>
+          <div class="gender-toggle">
+            <div class="gender-btn selected" id="gbtn-female" onclick="selectGender('Female')">👗 Female</div>
+            <div class="gender-btn" id="gbtn-male" onclick="selectGender('Male')">👔 Male</div>
+          </div>
+        </div>
+        <div class="field"><label>Date Measured</label><input id="m-date" type="date"></div>
+        <div class="field span-2"><label>Notes</label><input id="m-notes" placeholder="e.g. Prefers fitted bodice, likes loose trousers…"></div>
+      </div>
+
+      <div id="female-measurements" class="measurement-section">
+        <div class="measure-section-title">Upper Body</div>
+        <div class="form-grid cols-3">
+          <div class="field"><label>Neck</label><input id="m-neck" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Shoulder</label><input id="m-shoulder" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Chest / Bust</label><input id="m-chest" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Bust Point (F)</label><input id="m-bust-point" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Underbust (F)</label><input id="m-underbust" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Waist</label><input id="m-waist" type="number" step="0.5" placeholder="inches"></div>
+        </div>
+        <div class="measure-section-title">Lower Body</div>
+        <div class="form-grid cols-3">
+          <div class="field"><label>Hip</label><input id="m-hip" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Thigh / Lap</label><input id="m-thigh" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Knee</label><input id="m-knee" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Trouser Bottom/Ankle</label><input id="m-ankle" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Crotch / Seat</label><input id="m-crotch" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Trouser Length</label><input id="m-trouser-len" type="number" step="0.5" placeholder="inches"></div>
+        </div>
+        <div class="measure-section-title">Sleeves & Lengths</div>
+        <div class="form-grid cols-3">
+          <div class="field"><label>Sleeve (Short)</label><input id="m-sleeve-short" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Sleeve (Long)</label><input id="m-sleeve-long" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Round Sleeve / Bicep</label><input id="m-bicep" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Wrist</label><input id="m-wrist" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Top / Blouse Length</label><input id="m-top-len" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Gown Length (F)</label><input id="m-gown-len" type="number" step="0.5" placeholder="inches"></div>
+        </div>
+        <div class="measure-section-title">Skirt</div>
+        <div class="form-grid cols-3"><div class="field"><label>Skirt Length (F)</label><input id="m-skirt-len" type="number" step="0.5" placeholder="inches"></div></div>
+      </div>
+
+      <div id="male-extra-measurements" style="display:none">
+        <div class="measure-section-title">Agbada / Cap</div>
+        <div class="form-grid cols-3">
+          <div class="field"><label>Agbada Length (M)</label><input id="m-agbada-len" type="number" step="0.5" placeholder="inches"></div>
+          <div class="field"><label>Cap Size (M)</label><input id="m-cap-size" type="number" step="0.5" placeholder="inches"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('measure-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMeasurement()">Save Measurements</button>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Modal -->
+<div class="modal-overlay" id="expense-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title">Add Expense</div><button class="btn btn-ghost btn-icon" onclick="closeModal('expense-modal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid cols-1">
+        <div class="field"><label>Date *</label><input id="e-date" type="date"></div>
+        <div class="field"><label>Category *</label><select id="e-cat"><option>Rent</option><option>Electricity / Fuel</option><option>Wages</option><option>Transport</option><option>Machine Repair</option><option>Tools & Equipment</option><option>Shop Supplies</option><option>Marketing</option><option>Other</option></select></div>
+        <div class="field"><label>Description *</label><input id="e-desc" placeholder="e.g. Generator fuel — Week 2"></div>
+        <div class="field"><label>Amount (₦) *</label><input id="e-amount" type="number" min="0" placeholder="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('expense-modal')">Cancel</button><button class="btn btn-primary" onclick="saveExpense()">Save Expense</button></div>
+  </div>
+</div>
+
+<!-- Costing Edit Modal -->
+<div class="modal-overlay" id="cost-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title" id="cost-modal-title">Edit Job Costs</div><button class="btn btn-ghost btn-icon" onclick="closeModal('cost-modal')">✕</button></div>
+    <div class="modal-body">
+      <div id="cost-modal-info" class="highlight-box" style="margin-bottom:16px"></div>
+      <div class="form-grid cols-1">
+        <div class="field"><label>Materials Cost (₦)</label><input id="c-materials" type="number" min="0" placeholder="0"></div>
+        <div class="field"><label>Trims & Accessories (₦)</label><input id="c-trims" type="number" min="0" placeholder="0"></div>
+        <div class="field"><label>Transport / Misc (₦)</label><input id="c-transport" type="number" min="0" placeholder="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('cost-modal')">Cancel</button><button class="btn btn-primary" onclick="saveCost()">Save</button></div>
+  </div>
+</div>
+
+<!-- Payment Update Modal -->
+<div class="modal-overlay" id="payment-modal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><div class="modal-title">Record Payment</div><button class="btn btn-ghost btn-icon" onclick="closeModal('payment-modal')">✕</button></div>
+    <div class="modal-body">
+      <div id="payment-modal-info" class="highlight-box"></div>
+      <div class="form-grid cols-1">
+        <div class="field"><label>Add payment amount (₦)</label><input id="p-amount" type="number" min="0" placeholder="0"></div>
+        <div class="field"><label>Or set total amount paid to date (₦)</label><input id="p-total" type="number" min="0" placeholder="0"></div>
+      </div>
+      <div class="field-hint" style="margin-top:6px">Use either field — adding an amount tops up what's already paid; setting the total overrides it.</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('payment-modal')">Cancel</button><button class="btn btn-primary" onclick="savePayment()">Save Payment</button></div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header"><div class="modal-title">Confirm Delete</div><button class="btn btn-ghost btn-icon" onclick="closeModal('delete-modal')">✕</button></div>
+    <div class="modal-body"><p class="confirm-text" id="delete-confirm-text"></p></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('delete-modal')">Cancel</button><button class="btn btn-danger" id="delete-confirm-btn">Delete</button></div>
+  </div>
+</div>
+
+<!-- View Measurement Modal -->
+<div class="modal-overlay" id="view-measure-modal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header"><div class="modal-title" id="vm-title">Measurements</div><button class="btn btn-ghost btn-icon" onclick="closeModal('view-measure-modal')">✕</button></div>
+    <div class="modal-body" id="vm-body"></div>
+  </div>
+</div>
+
+<!-- Client Detail Modal -->
+<div class="modal-overlay" id="client-detail-modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header"><div class="modal-title" id="cd-title">Client</div><button class="btn btn-ghost btn-icon" onclick="closeModal('client-detail-modal')">✕</button></div>
+    <div class="modal-body" id="cd-body"></div>
+  </div>
+</div>
+
+<div id="toast-stack"></div>
+
+<script>
+// ─── DATA LAYER ───────────────────────────────────────────────
+const KEYS = { orders: 'orders', measurements: 'measurements', costs: 'costs', expenses: 'expenses', fabrics: 'fabrics', staff: 'staff' };
+
+// ─── FIREBASE SETUP ─────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCPjpiUqW5WEWFEkAXogGPfI2eC08rhEPk",
+  authDomain: "tunde-s-fashion-house.firebaseapp.com",
+  projectId: "tunde-s-fashion-house",
+  storageBucket: "tunde-s-fashion-house.firebasestorage.app",
+  messagingSenderId: "590125025122",
+  appId: "1:590125025122:web:dfb78c6aa3af43939ece3b"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const SHOP_DOC = 'shop_main'; // single shop document; each KEYS collection lives under this doc
+
+// In-memory cache mirrors Firestore so existing render code can call load() synchronously.
+const cache = { orders: [], measurements: [], costs: [], expenses: [], fabrics: [], staff: [] };
+let firestoreReady = false;
+let pendingRenderId = null;
+
+function load(key) { return cache[key] || []; }
+
+function save(key, data) {
+  cache[key] = data;
+  setSyncStatus('syncing');
+  db.collection('shops').doc(SHOP_DOC).collection(key).doc('data').set({ items: data, updatedAt: Date.now() })
+    .then(() => setSyncStatus('synced'))
+    .catch(err => { console.error('Firestore save failed:', key, err); setSyncStatus('offline'); });
+}
+
+function setSyncStatus(status) {
+  const dot = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  if (!dot || !label) return;
+  dot.className = 'sync-dot' + (status === 'syncing' ? ' syncing' : status === 'offline' ? ' offline' : '');
+  label.textContent = status === 'syncing' ? 'Saving…' : status === 'offline' ? 'Offline — not saved' : 'Synced · v4.0';
+}
+
+// Pull all collections from Firestore into cache, then render. Called on unlock and via live listeners.
+function attachFirestoreListeners(onFirstLoad) {
+  const collections = Object.values(KEYS);
+  let loaded = 0;
+  collections.forEach(key => {
+    db.collection('shops').doc(SHOP_DOC).collection(key).doc('data')
+      .onSnapshot(docSnap => {
+        cache[key] = (docSnap.exists && docSnap.data().items) ? docSnap.data().items : [];
+        loaded++;
+        if (loaded === collections.length && !firestoreReady) {
+          firestoreReady = true;
+          onFirstLoad();
+        } else if (firestoreReady) {
+          // live update from another device — re-render whatever page is open
+          const activePage = document.querySelector('.page.active');
+          if (activePage) renderPage(activePage.id.replace('page-', ''));
+        }
+        setSyncStatus('synced');
+      }, err => {
+        console.error('Firestore listener error:', key, err);
+        setSyncStatus('offline');
+        loaded++;
+        if (loaded === collections.length && !firestoreReady) { firestoreReady = true; onFirstLoad(); }
+      });
+  });
+}
+
+function migrateOldOrders() {
+  // migrate from v1 single-price orders (old localStorage key) if Firestore orders are empty
+  if (load(KEYS.orders).length === 0) {
+    const old = JSON.parse(localStorage.getItem('tfh_orders') || 'null');
+    if (old && old.length) {
+      const migrated = old.map(o => ({
+        id: o.id, client: o.client, phone: o.phone || '', email: o.email || '',
+        arrived: o.arrived || '', delivery: o.delivery || '',
+        items: [{ garment: o.garment, qty: 1, price: o.price || 0 }],
+        discountType: 'none', discountValue: 0, discountReason: '',
+        deposit: o.deposit || 0, status: o.status || 'In Progress', notes: o.notes || '',
+        pickupEmailSent: false
+      }));
+      save(KEYS.orders, migrated);
+      return;
+    }
+  }
+  // migrate from the previous localStorage v2 key, if present and Firestore is still empty
+  if (load(KEYS.orders).length === 0) {
+    const oldV2 = JSON.parse(localStorage.getItem('tfh_orders_v2') || 'null');
+    if (oldV2 && oldV2.length) save(KEYS.orders, oldV2);
+  }
+}
+
+function seedData() {
+  migrateOldOrders();
+  if (load(KEYS.orders).length === 0) {
+    const orders = [
+      { id: 1, client: 'Adaeze Okafor', phone: '08031234567', email: 'adaeze@mail.com', arrived: '2026-06-01', delivery: '2026-06-20',
+        items: [{ garment: 'Ankara gown, 2-piece', qty: 1, price: 25000 }],
+        discountType: 'none', discountValue: 0, discountReason: '', deposit: 10000, status: 'In Progress', notes: '', pickupEmailSent: false,
+        fabricId: null, fabricYards: 0, staffId: null },
+      { id: 2, client: 'Mr. Bello', phone: '08098765432', email: '', arrived: '2026-06-03', delivery: '2026-06-19',
+        items: [{ garment: 'Agbada full set + cap', qty: 1, price: 55000 }],
+        discountType: 'none', discountValue: 0, discountReason: '', deposit: 55000, status: 'Ready', notes: '', pickupEmailSent: false,
+        fabricId: 1, fabricYards: 8, staffId: 1 },
+      { id: 3, client: 'Chioma Eze', phone: '07011223344', email: 'chioma@mail.com', arrived: '2026-06-05', delivery: '2026-06-30',
+        items: [{ garment: 'Office shirt', qty: 3, price: 10000 }],
+        discountType: 'percent', discountValue: 5, discountReason: 'Repeat client', deposit: 15000, status: 'In Progress', notes: '', pickupEmailSent: false,
+        fabricId: null, fabricYards: 0, staffId: 2 },
+      { id: 4, client: 'Funmi Adeyemi', phone: '08145556677', email: 'funmi.a@mail.com', arrived: '2026-06-08', delivery: '2026-06-22',
+        items: [
+          { garment: 'Aso-ebi gown', qty: 4, price: 28000 },
+          { garment: 'Matching headtie & bag', qty: 4, price: 6000 }
+        ],
+        discountType: 'percent', discountValue: 10, discountReason: 'Bulk order — 4 sets for wedding train', deposit: 80000, status: 'In Progress', notes: 'Wedding — needs by Sat morning', pickupEmailSent: false,
+        fabricId: 2, fabricYards: 24, staffId: 1 }
+    ];
+    save(KEYS.orders, orders);
+    save(KEYS.costs, [{ id: 1, materials: 0, trims: 0, transport: 0 }, { id: 2, materials: 0, trims: 0, transport: 0 }, { id: 3, materials: 0, trims: 0, transport: 0 }, { id: 4, materials: 0, trims: 0, transport: 0 }]);
+    save(KEYS.measurements, [
+      { name: 'Adaeze Okafor', phone: '08031234567', gender: 'Female', date: '2026-06-01', neck:13, shoulder:15, chest:36, bustPoint:9.5, underbust:32, waist:30, hip:42, sleeveShort:9, sleeveLong:22, bicep:12, wrist:7, topLen:24, gownLen:58, skirtLen:40, trouser:'', thigh:'', knee:'', ankle:'', crotch:'', agbadaLen:'', capSize:'', notes:'Prefers fitted bodice' },
+      { name: 'Mr. Bello', phone: '08098765432', gender: 'Male', date: '2026-06-03', neck:16, shoulder:18.5, chest:42, bustPoint:'', underbust:'', waist:38, hip:41, sleeveShort:10, sleeveLong:25, bicep:14, wrist:8, topLen:30, gownLen:'', skirtLen:'', trouser:41, thigh:26, knee:17, ankle:15, crotch:11, agbadaLen:52, capSize:23, notes:'Likes roomy agbada' }
+    ]);
+    save(KEYS.expenses, [
+      { id: 1, date: '2026-06-01', category: 'Rent', description: 'Shop rent — June', amount: 30000 },
+      { id: 2, date: '2026-06-03', category: 'Electricity / Fuel', description: 'Generator fuel', amount: 5000 },
+      { id: 3, date: '2026-06-06', category: 'Wages', description: 'Assistant — week 1', amount: 10000 }
+    ]);
+  }
+  if (load(KEYS.fabrics).length === 0) {
+    save(KEYS.fabrics, [
+      { id: 1, name: 'Plain Cashmere — Navy', color: '#1B2A4A', stock: 22, reorder: 10, costPerYard: 2500, supplier: 'Balogun Market' },
+      { id: 2, name: 'Aso-ebi Lace — Gold', color: '#C99A4D', stock: 6, reorder: 15, costPerYard: 4500, supplier: 'Idumota' },
+      { id: 3, name: 'Ankara — Royal Blue Floral', color: '#2E4C8C', stock: 30, reorder: 12, costPerYard: 1800, supplier: 'Balogun Market' }
+    ]);
+  }
+  if (load(KEYS.staff).length === 0) {
+    save(KEYS.staff, [
+      { id: 1, name: 'Tunde', role: 'Tailor', phone: '' },
+      { id: 2, name: 'Kemi', role: 'Apprentice', phone: '08022233344' }
+    ]);
+  }
+}
+
+// ─── UTILS ────────────────────────────────────────────────────
+function fmt(n) { return '₦' + Math.round(Number(n || 0)).toLocaleString('en-NG'); }
+function nextId(arr) { return arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1; }
+function daysLeft(deliveryDate) {
+  if (!deliveryDate) return null;
+  const t = new Date(); t.setHours(0,0,0,0);
+  const d = new Date(deliveryDate); d.setHours(0,0,0,0);
+  return Math.ceil((d - t) / 86400000);
+}
+function daysPill(days, status) {
+  if (status === 'Delivered' || status === 'Cancelled') return `<span class="days-pill days-done">${status}</span>`;
+  if (days === null) return '—';
+  if (days < 0) return `<span class="days-pill days-urgent">Overdue ${Math.abs(days)}d</span>`;
+  if (days <= 3) return `<span class="days-pill days-urgent">${days}d left</span>`;
+  if (days <= 7) return `<span class="days-pill days-warn">${days}d left</span>`;
+  return `<span class="days-pill days-ok">${days}d left</span>`;
+}
+function statusBadge(s) {
+  const cls = { 'In Progress':'badge-progress', 'Ready':'badge-ready', 'Delivered':'badge-delivered', 'Cancelled':'badge-cancelled' };
+  const icon = { 'In Progress':'✂️', 'Ready':'📦', 'Delivered':'🎉', 'Cancelled':'✕' };
+  return `<span class="badge ${cls[s] || ''}">${icon[s]||''} ${s}</span>`;
+}
+function orderItemsTotal(o) { return (o.items || []).reduce((s, it) => s + (it.qty || 0) * (it.price || 0), 0); }
+function orderDiscountAmount(o) {
+  const subtotal = orderItemsTotal(o);
+  if (o.discountType === 'percent') return subtotal * ((o.discountValue || 0) / 100);
+  if (o.discountType === 'flat') return Math.min(o.discountValue || 0, subtotal);
+  return 0;
+}
+function orderTotal(o) { return orderItemsTotal(o) - orderDiscountAmount(o); }
+function orderBalance(o) { return orderTotal(o) - (o.deposit || 0); }
+function paymentStatus(o) {
+  const total = orderTotal(o);
+  const paid = o.deposit || 0;
+  if (total <= 0) return 'Unpaid';
+  if (paid >= total - 0.5) return 'Paid';
+  if (paid > 0) return 'Partial';
+  return 'Unpaid';
+}
+function payBadge(o) {
+  const s = paymentStatus(o);
+  const cls = { Paid: 'pay-paid', Partial: 'pay-partial', Unpaid: 'pay-unpaid' };
+  const icon = { Paid: '✓', Partial: '◐', Unpaid: '○' };
+  return `<span class="pay-badge ${cls[s]}">${icon[s]} ${s}</span>`;
+}
+function itemsSummary(o) {
+  const items = o.items || [];
+  if (items.length === 1) return `${items[0].garment}${items[0].qty > 1 ? ' ×' + items[0].qty : ''}`;
+  const totalQty = items.reduce((s,i) => s + (i.qty||0), 0);
+  return `${items.length} styles, ${totalQty} pcs`;
+}
+function itemsTooltip(o) {
+  return (o.items || []).map(i => `${i.garment} ×${i.qty} @ ${fmt(i.price)}`).join(' • ');
+}
+function toast(msg) {
+  const stack = document.getElementById('toast-stack');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  stack.appendChild(t);
+  setTimeout(() => { t.classList.add('fadeout'); setTimeout(() => t.remove(), 250); }, 3200);
+}
+function today() { return new Date().toISOString().split('T')[0]; }
+function initials(name) { return name.split(' ').filter(Boolean).slice(0,2).map(w => w[0].toUpperCase()).join(''); }
+
+// ─── NAVIGATION ───────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelector(`[onclick="showPage('${id}')"]`).classList.add('active');
+  renderPage(id);
+}
+function renderPage(id) {
+  if (id === 'dashboard') renderDashboard();
+  else if (id === 'orders') renderOrders();
+  else if (id === 'clients') renderClients();
+  else if (id === 'measurements') renderMeasurements();
+  else if (id === 'inventory') renderInventory();
+  else if (id === 'staff') renderStaff();
+  else if (id === 'costing') renderCosting();
+  else if (id === 'expenses') renderExpenses();
+  else if (id === 'pnl') renderPnL();
+  else if (id === 'settings') loadSettingsForm();
+  updateNavBadge();
+  updateEmailNudge();
+}
+function updateNavBadge() {
+  const orders = load(KEYS.orders);
+  const urgent = orders.filter(o => { const d = daysLeft(o.delivery); return d !== null && d <= 3 && o.status !== 'Delivered' && o.status !== 'Cancelled'; }).length;
+  const badge = document.getElementById('nav-active-badge');
+  if (urgent > 0) { badge.style.display = 'inline-block'; badge.textContent = urgent; } else { badge.style.display = 'none'; }
+
+  const fabrics = load(KEYS.fabrics);
+  const low = fabrics.filter(f => f.stock <= f.reorder).length;
+  const stockBadge = document.getElementById('nav-stock-badge');
+  if (low > 0) { stockBadge.style.display = 'inline-block'; stockBadge.textContent = low; } else { stockBadge.style.display = 'none'; }
+}
+
+// ─── MODALS ───────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+
+// ─── DASHBOARD ────────────────────────────────────────────────
+function renderDashboard() {
+  document.getElementById('dashboard-date').textContent = new Date().toLocaleDateString('en-NG', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const orders = load(KEYS.orders);
+  const costs = load(KEYS.costs);
+  const expenses = load(KEYS.expenses);
+
+  const active = orders.filter(o => o.status === 'In Progress').length;
+  const ready = orders.filter(o => o.status === 'Ready').length;
+  const delivered = orders.filter(o => o.status === 'Delivered').length;
+  const balance = orders.reduce((s, o) => s + Math.max(0, orderBalance(o)), 0);
+  const grossRevenue = orders.reduce((s, o) => s + orderItemsTotal(o), 0);
+  const discounts = orders.reduce((s, o) => s + orderDiscountAmount(o), 0);
+  const revenue = grossRevenue - discounts;
+  const totalCosts = costs.reduce((s, c) => s + (c.materials || 0) + (c.trims || 0) + (c.transport || 0), 0);
+  const overheads = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const gross = revenue - totalCosts;
+  const net = gross - overheads;
+  const margin = revenue ? ((net / revenue) * 100).toFixed(1) : 0;
+
+  document.getElementById('d-active').textContent = active;
+  document.getElementById('d-ready').textContent = ready;
+  document.getElementById('d-delivered').textContent = delivered;
+  document.getElementById('d-balance').textContent = Math.round(balance).toLocaleString('en-NG');
+  document.getElementById('d-revenue').textContent = fmt(revenue);
+  if (discounts > 0) { document.getElementById('d-discount-row').style.display = 'flex'; document.getElementById('d-discounts').textContent = '−' + fmt(discounts); }
+  document.getElementById('d-costs').textContent = fmt(totalCosts);
+  document.getElementById('d-gross').textContent = fmt(gross);
+  document.getElementById('d-overheads').textContent = fmt(overheads);
+  document.getElementById('d-net').textContent = fmt(net);
+  document.getElementById('d-margin').textContent = margin + '%';
+
+  const urgent = orders.filter(o => { const d = daysLeft(o.delivery); return d !== null && d <= 7 && o.status !== 'Delivered' && o.status !== 'Cancelled'; })
+    .sort((a,b) => daysLeft(a.delivery) - daysLeft(b.delivery));
+  const urgEl = document.getElementById('urgent-list');
+  urgEl.innerHTML = urgent.length ? urgent.map(o => `
+    <div class="urgency-row">
+      <div style="flex:1">
+        <div class="client-name">${o.client}</div>
+        <div class="garment">${itemsSummary(o)}</div>
+      </div>
+      <div class="phone">${o.phone || ''}</div>
+      ${daysPill(daysLeft(o.delivery), o.status)}
+    </div>`).join('') : `<div class="empty-state" style="padding:24px"><div class="empty-icon">✅</div><p>No urgent deadlines!</p></div>`;
+
+  const readyOrders = orders.filter(o => o.status === 'Ready');
+  const readyEl = document.getElementById('ready-list');
+  readyEl.innerHTML = readyOrders.length ? readyOrders.map(o => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:600;font-size:13px">${o.client}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${itemsSummary(o)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        ${payBadge(o)}
+        <button class="btn btn-ghost btn-sm" onclick="openEmailModal(${o.id})" title="Notify client">✉️ ${o.pickupEmailSent ? 'Resend' : 'Notify'}</button>
+      </div>
+    </div>`).join('') : `<div class="empty-state" style="padding:24px"><div class="empty-icon">🕐</div><p>No orders ready yet</p></div>`;
+
+  // top clients by spend
+  const clientMap = {};
+  orders.forEach(o => {
+    if (!clientMap[o.client]) clientMap[o.client] = { name: o.client, spend: 0, orders: 0 };
+    clientMap[o.client].spend += orderTotal(o);
+    clientMap[o.client].orders += 1;
+  });
+  const top = Object.values(clientMap).sort((a,b) => b.spend - a.spend).slice(0, 4);
+  document.getElementById('top-clients-list').innerHTML = top.length ? top.map(c => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="client-avatar" style="width:30px;height:30px;font-size:12px">${initials(c.name)}</div>
+        <div><div style="font-size:13px;font-weight:600">${c.name}</div><div style="font-size:11px;color:var(--text-muted)">${c.orders} order${c.orders>1?'s':''}</div></div>
+      </div>
+      <span class="money-display" style="font-size:13px;color:var(--sage)">${fmt(c.spend)}</span>
+    </div>`).join('') : `<div class="empty-state" style="padding:16px"><p>No clients yet</p></div>`;
+
+  const recent = [...orders].sort((a,b) => b.id - a.id).slice(0, 5);
+  document.getElementById('recent-orders-list').innerHTML = recent.map(o => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 22px;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:13px;font-weight:500">${o.client}</div><div style="font-size:11px;color:var(--text-muted)">${itemsSummary(o)}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">${statusBadge(o.status)}<span style="font-family:'JetBrains Mono',monospace;font-size:12px">${fmt(orderTotal(o))}</span></div>
+    </div>`).join('') || '<div class="empty-state" style="padding:24px"><p>No orders yet</p></div>';
+
+  updateNavBadge();
+}
+
+// ─── ORDER BUILDER (line items) ──────────────────────────────
+let lineItemCounter = 0;
+function addLineItem(garment = '', qty = 1, price = '') {
+  lineItemCounter++;
+  const id = 'li-' + lineItemCounter;
+  const tbody = document.getElementById('line-items-body');
+  const row = document.createElement('tr');
+  row.id = id;
+  row.innerHTML = `
+    <td><input type="text" class="li-garment" placeholder="e.g. Ankara gown" value="${garment}" oninput="renderOrderSummary()"></td>
+    <td><input type="number" class="li-qty" min="1" value="${qty}" oninput="renderOrderSummary()"></td>
+    <td><input type="number" class="li-price" min="0" placeholder="0" value="${price}" oninput="renderOrderSummary()"></td>
+    <td><button class="li-remove" onclick="removeLineItem('${id}')" title="Remove">✕</button></td>`;
+  tbody.appendChild(row);
+  renderOrderSummary();
+}
+function removeLineItem(id) {
+  const row = document.getElementById(id);
+  if (row) row.remove();
+  const tbody = document.getElementById('line-items-body');
+  if (tbody.children.length === 0) addLineItem();
+  renderOrderSummary();
+}
+function getLineItemsFromForm() {
+  const rows = document.querySelectorAll('#line-items-body tr');
+  const items = [];
+  rows.forEach(r => {
+    const garment = r.querySelector('.li-garment').value.trim();
+    const qty = parseFloat(r.querySelector('.li-qty').value) || 0;
+    const price = parseFloat(r.querySelector('.li-price').value) || 0;
+    if (garment) items.push({ garment, qty: qty || 1, price });
+  });
+  return items;
+}
+function renderOrderSummary() {
+  const items = getLineItemsFromForm();
+  const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0);
+  const discountType = document.getElementById('o-discount-type').value;
+  const discountValueField = document.getElementById('o-discount-value-field');
+  const discountLabel = document.getElementById('o-discount-value-label');
+  discountValueField.style.display = discountType === 'none' ? 'none' : 'flex';
+  discountLabel.textContent = discountType === 'percent' ? 'Discount %' : 'Discount ₦';
+  const discountValue = parseFloat(document.getElementById('o-discount-value').value) || 0;
+  let discountAmt = 0;
+  if (discountType === 'percent') discountAmt = subtotal * (discountValue / 100);
+  else if (discountType === 'flat') discountAmt = Math.min(discountValue, subtotal);
+  const total = subtotal - discountAmt;
+  const deposit = parseFloat(document.getElementById('o-deposit').value) || 0;
+  const balance = total - deposit;
+
+  document.getElementById('o-subtotal').textContent = fmt(subtotal);
+  document.getElementById('o-total').textContent = fmt(total);
+  document.getElementById('o-discount-summary-row').style.display = discountAmt > 0 ? 'flex' : 'none';
+  document.getElementById('o-discount-amount').textContent = '−' + fmt(discountAmt);
+  document.getElementById('o-balance').textContent = fmt(Math.max(0, balance));
+  document.getElementById('o-balance').style.color = balance > 0 ? 'var(--red)' : 'var(--sage)';
+
+  let status = 'Unpaid', cls = 'pay-unpaid', icon = '○';
+  if (total > 0 && deposit >= total - 0.5) { status = 'Paid in full'; cls = 'pay-paid'; icon = '✓'; }
+  else if (deposit > 0) { status = 'Partial payment'; cls = 'pay-partial'; icon = '◐'; }
+  document.getElementById('o-payment-status-display').innerHTML = `<span class="pay-badge ${cls}">${icon} ${status}</span>`;
+}
+
+// ─── ORDERS ───────────────────────────────────────────────────
+let editOrderId = null;
+
+function openOrderModal(id = null) {
+  editOrderId = id;
+  const o = id ? load(KEYS.orders).find(x => x.id === id) : null;
+  document.getElementById('order-modal-title').textContent = id ? 'Edit Order' : 'New Order';
+  document.getElementById('o-client').value = o?.client || '';
+  document.getElementById('o-phone').value = o?.phone || '';
+  document.getElementById('o-email').value = o?.email || '';
+  document.getElementById('o-materials').value = o?.materials || 'Client supplied cloth';
+  document.getElementById('o-arrived').value = o?.arrived || today();
+  document.getElementById('o-delivery').value = o?.delivery || '';
+  document.getElementById('o-status').value = o?.status || 'In Progress';
+  document.getElementById('o-notes').value = o?.notes || '';
+  document.getElementById('o-deposit').value = o?.deposit || '';
+  document.getElementById('o-discount-type').value = o?.discountType || 'none';
+  document.getElementById('o-discount-value').value = o?.discountValue || '';
+  document.getElementById('o-discount-reason').value = o?.discountReason || '';
+
+  populateFabricSelect(o?.fabricId);
+  document.getElementById('o-fabric-yards').value = o?.fabricYards || '';
+  populateStaffSelect(o?.staffId);
+  toggleFabricField();
+
+  document.getElementById('line-items-body').innerHTML = '';
+  const items = o?.items || [{ garment: '', qty: 1, price: '' }];
+  items.forEach(it => addLineItem(it.garment, it.qty, it.price));
+
+  document.getElementById('order-receipt-btn').style.display = id ? 'inline-flex' : 'none';
+
+  populateClientDatalist();
+  renderOrderSummary();
+  openModal('order-modal');
+}
+
+function toggleFabricField() {
+  const usesShopMaterial = document.getElementById('o-materials').value === 'Tunde bought materials';
+  document.getElementById('o-fabric-field').style.display = usesShopMaterial ? 'flex' : 'none';
+  document.getElementById('o-fabric-yards-field').style.display = usesShopMaterial ? 'flex' : 'none';
+}
+
+function populateFabricSelect(selectedId) {
+  const fabrics = load(KEYS.fabrics);
+  const sel = document.getElementById('o-fabric-used');
+  sel.innerHTML = '<option value="">— None / not tracked —</option>' +
+    fabrics.map(f => `<option value="${f.id}" ${f.id === selectedId ? 'selected' : ''}>${f.name} (${f.stock} yds left)</option>`).join('');
+}
+
+function populateStaffSelect(selectedId) {
+  const staff = load(KEYS.staff);
+  const sel = document.getElementById('o-staff');
+  sel.innerHTML = '<option value="">— Tunde (unassigned) —</option>' +
+    staff.map(s => `<option value="${s.id}" ${s.id === selectedId ? 'selected' : ''}>${s.name} (${s.role})</option>`).join('');
+}
+
+function autofillClientContact() {
+  if (editOrderId) return;
+  const name = document.getElementById('o-client').value.trim();
+  if (!name) return;
+  const orders = load(KEYS.orders);
+  const match = [...orders].reverse().find(o => o.client.toLowerCase() === name.toLowerCase());
+  if (match) {
+    if (!document.getElementById('o-phone').value) document.getElementById('o-phone').value = match.phone || '';
+    if (!document.getElementById('o-email').value) document.getElementById('o-email').value = match.email || '';
+  }
+}
+
+function populateClientDatalist() {
+  const names = [...new Set(load(KEYS.orders).map(o => o.client))];
+  ['client-names-list','client-names-list2'].forEach(id => {
+    const dl = document.getElementById(id);
+    if (dl) dl.innerHTML = names.map(n => `<option value="${n}">`).join('');
+  });
+}
+
+function saveOrder() {
+  const client = document.getElementById('o-client').value.trim();
+  const delivery = document.getElementById('o-delivery').value;
+  const items = getLineItemsFromForm();
+  if (!client || !delivery || items.length === 0) { toast('⚠️ Please fill client name, delivery date, and at least one item'); return; }
+
+  const orders = load(KEYS.orders);
+  const costs = load(KEYS.costs);
+  const fabrics = load(KEYS.fabrics);
+  const prevOrder = editOrderId ? orders.find(o => o.id === editOrderId) : null;
+  const wasReady = prevOrder?.status === 'Ready';
+
+  const newFabricId = document.getElementById('o-fabric-used').value ? parseInt(document.getElementById('o-fabric-used').value) : null;
+  const newFabricYards = parseFloat(document.getElementById('o-fabric-yards').value) || 0;
+  const newStaffId = document.getElementById('o-staff').value ? parseInt(document.getElementById('o-staff').value) : null;
+
+  // reverse previous stock deduction if editing
+  if (prevOrder && prevOrder.fabricId) {
+    const fIdx = fabrics.findIndex(f => f.id === prevOrder.fabricId);
+    if (fIdx > -1) fabrics[fIdx].stock += (prevOrder.fabricYards || 0);
+  }
+  // apply new deduction
+  if (newFabricId) {
+    const fIdx = fabrics.findIndex(f => f.id === newFabricId);
+    if (fIdx > -1) fabrics[fIdx].stock = Math.max(0, fabrics[fIdx].stock - newFabricYards);
+  }
+  save(KEYS.fabrics, fabrics);
+
+  const entry = {
+    id: editOrderId || nextId(orders),
+    client, delivery, items,
+    phone: document.getElementById('o-phone').value.trim(),
+    email: document.getElementById('o-email').value.trim(),
+    materials: document.getElementById('o-materials').value,
+    arrived: document.getElementById('o-arrived').value,
+    deposit: parseFloat(document.getElementById('o-deposit').value) || 0,
+    status: document.getElementById('o-status').value,
+    notes: document.getElementById('o-notes').value.trim(),
+    discountType: document.getElementById('o-discount-type').value,
+    discountValue: parseFloat(document.getElementById('o-discount-value').value) || 0,
+    discountReason: document.getElementById('o-discount-reason').value.trim(),
+    pickupEmailSent: prevOrder?.pickupEmailSent || false,
+    fabricId: newFabricId, fabricYards: newFabricId ? newFabricYards : 0,
+    staffId: newStaffId
+  };
+
+  if (editOrderId) {
+    const i = orders.findIndex(o => o.id === editOrderId);
+    orders[i] = entry;
+  } else {
+    orders.push(entry);
+    if (!costs.find(c => c.id === entry.id)) costs.push({ id: entry.id, materials: 0, trims: 0, transport: 0 });
+    save(KEYS.costs, costs);
+  }
+  save(KEYS.orders, orders);
+  closeModal('order-modal');
+  renderOrders();
+  toast('✅ Order saved!');
+
+  const fabricUsed = fabrics.find(f => f.id === newFabricId);
+  if (fabricUsed && fabricUsed.stock <= fabricUsed.reorder) {
+    setTimeout(() => toast(`⚠️ ${fabricUsed.name} is running low — ${fabricUsed.stock} yds left`), 600);
+  }
+
+  // prompt for pickup email if status just changed to Ready
+  if (entry.status === 'Ready' && !wasReady) {
+    setTimeout(() => openEmailModal(entry.id), 350);
+  }
+}
+
+function openReceiptFromOrderModal() {
+  if (editOrderId) { closeModal('order-modal'); openReceiptModal(editOrderId); }
+}
+
+function renderOrders() {
+  const orders = load(KEYS.orders);
+  const q = document.getElementById('order-search')?.value.toLowerCase() || '';
+  const f = document.getElementById('order-filter')?.value || '';
+  const pf = document.getElementById('order-pay-filter')?.value || '';
+  const filtered = orders.filter(o =>
+    (!q || o.client.toLowerCase().includes(q) || itemsSummary(o).toLowerCase().includes(q)) &&
+    (!f || o.status === f) &&
+    (!pf || paymentStatus(o) === pf)
+  );
+
+  const tbody = document.getElementById('orders-tbody');
+  const empty = document.getElementById('orders-empty');
+  if (filtered.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = filtered.map(o => {
+    const subtotal = orderItemsTotal(o);
+    const discount = orderDiscountAmount(o);
+    const total = orderTotal(o);
+    const bal = orderBalance(o);
+    const d = daysLeft(o.delivery);
+    return `<tr>
+      <td style="color:var(--text-muted);font-family:'JetBrains Mono',monospace">#${o.id}</td>
+      <td><strong>${o.client}</strong>${o.notes ? `<br><span style="font-size:11px;color:var(--text-muted)">📝 ${o.notes}</span>` : ''}</td>
+      <td style="font-size:12.5px" title="${itemsTooltip(o)}">${itemsSummary(o)}</td>
+      <td style="font-size:12px">${o.delivery || '—'}</td>
+      <td>${daysPill(d, o.status)}</td>
+      <td class="money-display">${fmt(total)}</td>
+      <td>${discount > 0 ? `<span style="color:var(--red);font-size:12px" title="${o.discountReason||''}">−${fmt(discount)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td class="money-display">${fmt(o.deposit)}</td>
+      <td class="money-display" style="color:${bal > 0 ? 'var(--red)' : 'var(--sage)'}">${fmt(Math.max(0,bal))}</td>
+      <td>${payBadge(o)}</td>
+      <td>${statusBadge(o.status)}</td>
+      <td><div class="row-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openPaymentModal(${o.id})" title="Record payment">💰</button>
+        ${o.status === 'Ready' ? `<button class="btn btn-ghost btn-sm" onclick="openEmailModal(${o.id})" title="Notify client">✉️</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="openReceiptModal(${o.id})" title="Print receipt">🧾</button>
+        <button class="btn btn-ghost btn-sm" onclick="openOrderModal(${o.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('order',${o.id})">Del</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── INVENTORY (FABRIC STOCK) ─────────────────────────────────
+let editFabricId = null;
+function openFabricModal(id = null) {
+  editFabricId = id;
+  const f = id ? load(KEYS.fabrics).find(x => x.id === id) : null;
+  document.getElementById('fabric-modal-title').textContent = id ? 'Edit Material' : 'Add Material';
+  document.getElementById('f-name').value = f?.name || '';
+  document.getElementById('f-color').value = f?.color || '#A8762E';
+  document.getElementById('f-stock').value = f?.stock ?? '';
+  document.getElementById('f-reorder').value = f?.reorder ?? '';
+  document.getElementById('f-cost').value = f?.costPerYard ?? '';
+  document.getElementById('f-supplier').value = f?.supplier || '';
+  openModal('fabric-modal');
+}
+function saveFabric() {
+  const name = document.getElementById('f-name').value.trim();
+  const stock = parseFloat(document.getElementById('f-stock').value);
+  if (!name || isNaN(stock)) { toast('⚠️ Please enter a name and stock quantity'); return; }
+  const fabrics = load(KEYS.fabrics);
+  const entry = {
+    id: editFabricId || nextId(fabrics),
+    name, stock,
+    color: document.getElementById('f-color').value,
+    reorder: parseFloat(document.getElementById('f-reorder').value) || 5,
+    costPerYard: parseFloat(document.getElementById('f-cost').value) || 0,
+    supplier: document.getElementById('f-supplier').value.trim()
+  };
+  if (editFabricId) { const i = fabrics.findIndex(f => f.id === editFabricId); fabrics[i] = entry; }
+  else fabrics.push(entry);
+  save(KEYS.fabrics, fabrics);
+  closeModal('fabric-modal');
+  renderInventory();
+  toast('✅ Material saved!');
+}
+function stockBadgeFor(f) {
+  if (f.stock <= 0) return `<span class="stock-badge stock-out">✕ Out of stock</span>`;
+  if (f.stock <= f.reorder) return `<span class="stock-badge stock-low">⚠ Running low</span>`;
+  return `<span class="stock-badge stock-ok">✓ Healthy</span>`;
+}
+function renderInventory() {
+  const fabrics = load(KEYS.fabrics);
+  document.getElementById('inv-count').textContent = fabrics.length;
+  document.getElementById('inv-low').textContent = fabrics.filter(f => f.stock <= f.reorder).length;
+  document.getElementById('inv-value').textContent = Math.round(fabrics.reduce((s,f) => s + f.stock * f.costPerYard, 0)).toLocaleString('en-NG');
+
+  const tbody = document.getElementById('fabric-tbody');
+  const empty = document.getElementById('fabric-empty');
+  if (fabrics.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = fabrics.map(f => `
+    <tr>
+      <td><div class="fabric-swatch" style="background:${f.color}"></div></td>
+      <td><strong>${f.name}</strong>${f.supplier ? `<br><span style="font-size:11px;color:var(--text-muted)">from ${f.supplier}</span>` : ''}</td>
+      <td><div class="fabric-swatch" style="background:${f.color};width:18px;height:18px;display:inline-block"></div></td>
+      <td class="money-display">${f.stock} yds</td>
+      <td style="font-size:12px;color:var(--text-muted)">${f.reorder} yds</td>
+      <td class="money-display">${fmt(f.costPerYard)}</td>
+      <td>${stockBadgeFor(f)}</td>
+      <td><div class="row-actions">
+        <button class="btn btn-success btn-sm" onclick="openRestockModal(${f.id})">+ Stock</button>
+        <button class="btn btn-ghost btn-sm" onclick="openFabricModal(${f.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('fabric',${f.id})">Del</button>
+      </div></td>
+    </tr>`).join('');
+}
+let editRestockId = null;
+function openRestockModal(id) {
+  editRestockId = id;
+  const f = load(KEYS.fabrics).find(x => x.id === id);
+  document.getElementById('restock-info').innerHTML = `<strong>${f.name}</strong> — currently <strong>${f.stock} yards</strong> in stock`;
+  document.getElementById('r-add').value = '';
+  document.getElementById('r-set').value = '';
+  openModal('restock-modal');
+}
+function saveRestock() {
+  const fabrics = load(KEYS.fabrics);
+  const idx = fabrics.findIndex(f => f.id === editRestockId);
+  if (idx === -1) return;
+  const addAmt = parseFloat(document.getElementById('r-add').value) || 0;
+  const setAmt = document.getElementById('r-set').value;
+  if (setAmt !== '') fabrics[idx].stock = parseFloat(setAmt) || 0;
+  else if (addAmt > 0) fabrics[idx].stock += addAmt;
+  else { toast('⚠️ Enter a quantity'); return; }
+  save(KEYS.fabrics, fabrics);
+  closeModal('restock-modal');
+  renderInventory();
+  toast('✅ Stock updated!');
+}
+
+// ─── STAFF & TASKS ────────────────────────────────────────────
+let editStaffId = null;
+function openStaffModal(id = null) {
+  editStaffId = id;
+  const s = id ? load(KEYS.staff).find(x => x.id === id) : null;
+  document.getElementById('staff-modal-title').textContent = id ? 'Edit Staff' : 'Add Staff';
+  document.getElementById('s-name').value = s?.name || '';
+  document.getElementById('s-role').value = s?.role || 'Tailor';
+  document.getElementById('s-phone').value = s?.phone || '';
+  openModal('staff-modal');
+}
+function saveStaff() {
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) { toast('⚠️ Name is required'); return; }
+  const staff = load(KEYS.staff);
+  const entry = { id: editStaffId || nextId(staff), name, role: document.getElementById('s-role').value, phone: document.getElementById('s-phone').value.trim() };
+  if (editStaffId) { const i = staff.findIndex(s => s.id === editStaffId); staff[i] = entry; }
+  else staff.push(entry);
+  save(KEYS.staff, staff);
+  closeModal('staff-modal');
+  renderStaff();
+  toast('✅ Staff saved!');
+}
+function renderStaff() {
+  const staff = load(KEYS.staff);
+  const orders = load(KEYS.orders);
+  const grid = document.getElementById('staff-grid');
+  const empty = document.getElementById('staff-empty');
+  if (staff.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; }
+  else {
+    empty.style.display = 'none';
+    const maxLoad = Math.max(1, ...staff.map(s => orders.filter(o => o.staffId === s.id && o.status === 'In Progress').length));
+    grid.innerHTML = staff.map(s => {
+      const activeJobs = orders.filter(o => o.staffId === s.id && o.status === 'In Progress');
+      const readyJobs = orders.filter(o => o.staffId === s.id && o.status === 'Ready');
+      const pct = Math.round((activeJobs.length / maxLoad) * 100);
+      return `<div class="staff-card">
+        <div class="staff-card-top">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="staff-avatar">${initials(s.name)}</div>
+            <div><div style="font-family:'Fraunces',serif;font-weight:700;font-size:15px">${s.name}</div><span class="role-pill">${s.role}</span></div>
+          </div>
+          <div class="row-actions">
+            <button class="btn btn-ghost btn-sm" onclick="openStaffModal(${s.id})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="confirmDelete('staff',${s.id})">Del</button>
+          </div>
+        </div>
+        <div style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:6px">
+            <span>${activeJobs.length} active job${activeJobs.length===1?'':'s'}</span><span>${readyJobs.length} ready</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="workload-bar-bg"><div class="workload-bar-fill" style="width:${pct}%"></div></div>
+          </div>
+        </div>
+        ${activeJobs.length ? `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+          ${activeJobs.slice(0,3).map(o => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0"><span>${o.client} — ${itemsSummary(o)}</span>${daysPill(daysLeft(o.delivery), o.status)}</div>`).join('')}
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  const unassigned = orders.filter(o => !o.staffId && o.status !== 'Delivered' && o.status !== 'Cancelled');
+  document.getElementById('unassigned-orders-list').innerHTML = unassigned.length ? unassigned.map(o => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:13px;font-weight:600">${o.client}</div><div style="font-size:11px;color:var(--text-muted)">${itemsSummary(o)}</div></div>
+      <div style="display:flex;align-items:center;gap:10px">${daysPill(daysLeft(o.delivery), o.status)}<button class="btn btn-ghost btn-sm" onclick="openOrderModal(${o.id})">Assign</button></div>
+    </div>`).join('') : `<div class="empty-state" style="padding:20px"><p>Every active order has someone on it 🎉</p></div>`;
+}
+
+// ─── RECEIPTS ─────────────────────────────────────────────────
+function buildReceiptHtml(o) {
+  const items = o.items || [];
+  const subtotal = orderItemsTotal(o);
+  const discount = orderDiscountAmount(o);
+  const total = orderTotal(o);
+  const bal = orderBalance(o);
+  const status = paymentStatus(o);
+  const stampColor = status === 'Paid' ? 'var(--sage)' : status === 'Partial' ? 'var(--amber)' : 'var(--red)';
+  return `
+    <div class="receipt-paper">
+      <div class="receipt-header">
+        <div class="receipt-brand">Tunde's Fashion House</div>
+        <div class="receipt-tagline">BESPOKE TAILORING · LAGOS</div>
+      </div>
+      <div class="receipt-meta">
+        <span>Receipt #${String(o.id).padStart(4,'0')}</span>
+        <span>${o.delivery ? 'Delivery: ' + o.delivery : ''}</span>
+      </div>
+      <div style="font-size:13px;margin-bottom:14px"><strong>Client:</strong> ${o.client}${o.phone ? ' · ' + o.phone : ''}</div>
+      <table class="receipt-items-table">
+        <thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead>
+        <tbody>${items.map(i => `<tr><td>${i.garment}</td><td>${i.qty}</td><td>${fmt(i.qty * i.price)}</td></tr>`).join('')}</tbody>
+      </table>
+      <div class="receipt-totals">
+        <div class="pl-row"><span>Subtotal</span><span class="money-display">${fmt(subtotal)}</span></div>
+        ${discount > 0 ? `<div class="pl-row"><span>Discount${o.discountReason ? ' (' + o.discountReason + ')' : ''}</span><span class="money-display" style="color:var(--red)">−${fmt(discount)}</span></div>` : ''}
+        <div class="pl-row net"><span>Total</span><span class="money-display">${fmt(total)}</span></div>
+        <div class="pl-row"><span>Amount Paid</span><span class="money-display" style="color:var(--sage)">${fmt(o.deposit)}</span></div>
+        <div class="pl-row"><span>Balance Due</span><span class="money-display" style="color:${bal>0?'var(--red)':'var(--sage)'}">${fmt(Math.max(0,bal))}</span></div>
+      </div>
+      <div class="receipt-status-stamp"><span class="pay-badge pay-${status.toLowerCase()}" style="font-size:13px;padding:6px 16px">${status === 'Paid' ? '✓ PAID IN FULL' : status === 'Partial' ? '◐ PARTIAL PAYMENT' : '○ UNPAID'}</span></div>
+      <div class="receipt-footer">Thank you for trusting us with your style.<br>Tunde's Fashion House — quality you can measure.</div>
+    </div>`;
+}
+function openReceiptModal(id) {
+  const o = load(KEYS.orders).find(x => x.id === id);
+  if (!o) return;
+  document.getElementById('receipt-body').innerHTML = buildReceiptHtml(o);
+  openModal('receipt-modal');
+}
+
+// ─── PAYMENT MODAL ────────────────────────────────────────────
+let editPaymentOrderId = null;
+function openPaymentModal(id) {
+  editPaymentOrderId = id;
+  const o = load(KEYS.orders).find(x => x.id === id);
+  const total = orderTotal(o);
+  const bal = orderBalance(o);
+  document.getElementById('payment-modal-info').innerHTML = `
+    <strong>${o.client}</strong> — ${itemsSummary(o)}<br>
+    Total: <strong>${fmt(total)}</strong> · Paid so far: <strong>${fmt(o.deposit)}</strong> · Balance: <strong style="color:${bal>0?'var(--red)':'var(--sage)'}">${fmt(Math.max(0,bal))}</strong>`;
+  document.getElementById('p-amount').value = '';
+  document.getElementById('p-total').value = '';
+  openModal('payment-modal');
+}
+function savePayment() {
+  const orders = load(KEYS.orders);
+  const idx = orders.findIndex(o => o.id === editPaymentOrderId);
+  if (idx === -1) return;
+  const addAmt = parseFloat(document.getElementById('p-amount').value) || 0;
+  const setTotal = document.getElementById('p-total').value;
+  if (setTotal !== '') {
+    orders[idx].deposit = parseFloat(setTotal) || 0;
+  } else if (addAmt > 0) {
+    orders[idx].deposit = (orders[idx].deposit || 0) + addAmt;
+  } else {
+    toast('⚠️ Enter a payment amount'); return;
+  }
+  save(KEYS.orders, orders);
+  closeModal('payment-modal');
+  renderOrders();
+  renderDashboard();
+  toast('✅ Payment recorded!');
+}
+
+// ─── EMAIL SETTINGS (EmailJS) ──────────────────────────────────
+const SETTINGS_KEY = 'tfh_email_settings';
+function getEmailSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null'); } catch { return null; }
+}
+function isEmailConfigured() {
+  const s = getEmailSettings();
+  return !!(s && s.serviceId && s.templateId && s.publicKey);
+}
+function initEmailJs() {
+  const s = getEmailSettings();
+  if (s && s.publicKey && window.emailjs) {
+    try { emailjs.init({ publicKey: s.publicKey }); } catch (e) { /* ignore until configured */ }
+  }
+}
+function loadSettingsForm() {
+  const s = getEmailSettings() || {};
+  document.getElementById('set-service-id').value = s.serviceId || '';
+  document.getElementById('set-template-id').value = s.templateId || '';
+  document.getElementById('set-public-key').value = s.publicKey || '';
+  document.getElementById('settings-status').innerHTML = '';
+}
+function saveEmailSettings() {
+  const serviceId = document.getElementById('set-service-id').value.trim();
+  const templateId = document.getElementById('set-template-id').value.trim();
+  const publicKey = document.getElementById('set-public-key').value.trim();
+  if (!serviceId || !templateId || !publicKey) {
+    document.getElementById('settings-status').innerHTML = `<span style="color:var(--red)">⚠️ Please fill in all three fields.</span>`;
+    return;
+  }
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify({ serviceId, templateId, publicKey }));
+  initEmailJs();
+  document.getElementById('settings-status').innerHTML = `<span style="color:var(--sage)">✅ Saved! Try "Send Test Email" to confirm it works.</span>`;
+  toast('✅ Email settings saved!');
+  updateEmailNudge();
+}
+function sendTestEmail() {
+  if (!isEmailConfigured()) { document.getElementById('settings-status').innerHTML = `<span style="color:var(--red)">⚠️ Save your settings first.</span>`; return; }
+  const s = getEmailSettings();
+  const testEmail = prompt('Send a test email to which address?', '');
+  if (!testEmail) return;
+  document.getElementById('settings-status').innerHTML = `<span style="color:var(--text-muted)">Sending test email…</span>`;
+  emailjs.send(s.serviceId, s.templateId, {
+    to_email: testEmail, to_name: 'Test Client',
+    subject: 'Test email from Tunde\'s Fashion House',
+    message: 'This is a test message. If you received this, your email setup is working correctly!'
+  }).then(() => {
+    document.getElementById('settings-status').innerHTML = `<span style="color:var(--sage)">✅ Test email sent to ${testEmail}! Check the inbox.</span>`;
+    toast('✅ Test email sent!');
+  }).catch(err => {
+    document.getElementById('settings-status').innerHTML = `<span style="color:var(--red)">❌ Failed to send: ${err?.text || err?.message || 'check your Service ID, Template ID, and Public Key'}</span>`;
+  });
+}
+function updateEmailNudge() {
+  const nudge = document.getElementById('email-setup-nudge');
+  const badge = document.getElementById('nav-email-badge');
+  const configured = isEmailConfigured();
+  if (nudge) nudge.style.display = configured ? 'none' : 'flex';
+  if (badge) badge.style.display = configured ? 'none' : 'inline-block';
+}
+
+// ─── PICKUP EMAIL ─────────────────────────────────────────────
+let emailOrderId = null;
+function buildPickupEmail(o) {
+  const bal = orderBalance(o);
+  const balLine = bal > 0
+    ? `There's an outstanding balance of ${fmt(bal)}, which you can settle on pickup.`
+    : `Your order is fully paid — nothing more to settle.`;
+  const subject = `Your order is ready for pickup — Tunde's Fashion House`;
+  const body = `Dear ${o.client},
+
+Good news! Your order — ${itemsSummary(o)} — is complete and ready for pickup at Tunde's Fashion House.
+
+${balLine}
+
+Kindly visit at your convenience. Thank you for trusting us with your style.
+
+Warm regards,
+Tunde's Fashion House`;
+  return { subject, body };
+}
+function openEmailModal(id) {
+  emailOrderId = id;
+  const o = load(KEYS.orders).find(x => x.id === id);
+  const { subject, body } = buildPickupEmail(o);
+  document.getElementById('email-to').textContent = o.email || '(no email on file)';
+  document.getElementById('email-subject').textContent = subject;
+  document.getElementById('email-body').innerHTML = body.replace(/\n/g, '<br>');
+  document.getElementById('email-send-status').innerHTML = '';
+
+  const configured = isEmailConfigured();
+  document.getElementById('email-not-configured-warning').style.display = (!configured && o.email) ? 'block' : 'none';
+  document.getElementById('email-no-address-warning').style.display = o.email ? 'none' : 'block';
+
+  const sendBtn = document.getElementById('email-send-btn');
+  if (!o.email) { sendBtn.textContent = '✅ Mark as Notified'; }
+  else if (!configured) { sendBtn.textContent = '✅ Mark as Sent Manually'; }
+  else { sendBtn.textContent = o.pickupEmailSent ? '✉️ Resend Email' : '✉️ Send Email Now'; }
+
+  openModal('email-modal');
+}
+function copyEmailText() {
+  const o = load(KEYS.orders).find(x => x.id === emailOrderId);
+  const { subject, body } = buildPickupEmail(o);
+  const text = `Subject: ${subject}\n\n${body}`;
+  navigator.clipboard?.writeText(text).then(() => toast('📋 Copied to clipboard!')).catch(() => toast('⚠️ Could not copy — select text manually'));
+}
+function markPickupNotified(id) {
+  const orders = load(KEYS.orders);
+  const idx = orders.findIndex(o => o.id === id);
+  if (idx === -1) return;
+  orders[idx].pickupEmailSent = true;
+  save(KEYS.orders, orders);
+  renderOrders();
+  renderDashboard();
+}
+function sendPickupEmail() {
+  const orders = load(KEYS.orders);
+  const o = orders.find(x => x.id === emailOrderId);
+  if (!o) return;
+
+  // No email on file — just log as notified (e.g. notified by phone/WhatsApp)
+  if (!o.email) {
+    markPickupNotified(emailOrderId);
+    closeModal('email-modal');
+    toast('✅ Marked as notified');
+    return;
+  }
+
+  // Email not configured yet — fall back to manual logging
+  if (!isEmailConfigured()) {
+    markPickupNotified(emailOrderId);
+    closeModal('email-modal');
+    toast('✅ Logged — connect Email Setup to send automatically next time');
+    return;
+  }
+
+  // Real send via EmailJS
+  const s = getEmailSettings();
+  const { subject, body } = buildPickupEmail(o);
+  const sendBtn = document.getElementById('email-send-btn');
+  const statusEl = document.getElementById('email-send-status');
+  sendBtn.disabled = true;
+  statusEl.innerHTML = `<span style="color:var(--text-muted)">Sending…</span>`;
+
+  emailjs.send(s.serviceId, s.templateId, {
+    to_email: o.email, to_name: o.client, subject, message: body
+  }).then(() => {
+    markPickupNotified(emailOrderId);
+    statusEl.innerHTML = `<span style="color:var(--sage)">✅ Sent to ${o.email}</span>`;
+    toast(`✉️ Email sent to ${o.client}!`);
+    sendBtn.disabled = false;
+    setTimeout(() => closeModal('email-modal'), 900);
+  }).catch(err => {
+    statusEl.innerHTML = `<span style="color:var(--red)">❌ Failed to send: ${err?.text || err?.message || 'check Email Setup'}</span>`;
+    sendBtn.disabled = false;
+  });
+}
+
+// ─── CLIENTS (CRM) ────────────────────────────────────────────
+function buildClientProfiles() {
+  const orders = load(KEYS.orders);
+  const map = {};
+  orders.forEach(o => {
+    if (!map[o.client]) map[o.client] = { name: o.client, phone: o.phone, email: o.email, orders: [], spend: 0, balance: 0, lastOrder: '' };
+    const c = map[o.client];
+    if (o.phone) c.phone = o.phone;
+    if (o.email) c.email = o.email;
+    c.orders.push(o);
+    c.spend += orderTotal(o);
+    c.balance += Math.max(0, orderBalance(o));
+    if (!c.lastOrder || o.delivery > c.lastOrder) c.lastOrder = o.delivery;
+  });
+  return Object.values(map);
+}
+function renderClients() {
+  const clients = buildClientProfiles();
+  const q = document.getElementById('client-search')?.value.toLowerCase() || '';
+  const sortBy = document.getElementById('client-sort')?.value || 'spend';
+  let filtered = clients.filter(c => !q || c.name.toLowerCase().includes(q));
+  if (sortBy === 'spend') filtered.sort((a,b) => b.spend - a.spend);
+  else if (sortBy === 'orders') filtered.sort((a,b) => b.orders.length - a.orders.length);
+  else if (sortBy === 'recent') filtered.sort((a,b) => (b.lastOrder||'').localeCompare(a.lastOrder||''));
+  else if (sortBy === 'balance') filtered.sort((a,b) => b.balance - a.balance);
+
+  const grid = document.getElementById('clients-grid');
+  const empty = document.getElementById('clients-empty');
+  if (filtered.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  const avgSpend = clients.reduce((s,c)=>s+c.spend,0) / (clients.length || 1);
+
+  grid.innerHTML = filtered.map(c => {
+    const isVip = c.orders.length >= 3 || c.spend > avgSpend * 1.5;
+    return `<div class="client-card">
+      <div class="client-card-top">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="client-avatar">${initials(c.name)}</div>
+          <div>
+            <div class="client-name-row"><span style="font-family:'Fraunces',serif;font-weight:700;font-size:15px">${c.name}</span>${isVip ? '<span class="vip-badge">⭐ VIP</span>' : ''}</div>
+            <div style="font-size:11.5px;color:var(--text-muted)">${c.phone || 'no phone'} ${c.email ? '· ' + c.email : ''}</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="openClientDetail('${c.name.replace(/'/g,"\\'")}')">View</button>
+      </div>
+      <div style="display:flex;justify-content:space-around;padding-top:8px;border-top:1px solid var(--border)">
+        <div class="client-stat-mini"><div class="num">${c.orders.length}</div><div class="lbl">Orders</div></div>
+        <div class="client-stat-mini"><div class="num" style="color:var(--sage)">${fmt(c.spend)}</div><div class="lbl">Lifetime Spend</div></div>
+        <div class="client-stat-mini"><div class="num" style="color:${c.balance>0?'var(--red)':'var(--sage)'}">${fmt(c.balance)}</div><div class="lbl">Balance</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openClientDetail(name) {
+  const c = buildClientProfiles().find(x => x.name === name);
+  if (!c) return;
+  document.getElementById('cd-title').textContent = c.name;
+  const rows = [...c.orders].sort((a,b) => b.id - a.id).map(o => `
+    <tr><td style="font-size:12px">${o.delivery}</td><td style="font-size:12.5px">${itemsSummary(o)}</td>
+    <td class="money-display">${fmt(orderTotal(o))}</td><td>${payBadge(o)}</td><td>${statusBadge(o.status)}</td></tr>`).join('');
+  document.getElementById('cd-body').innerHTML = `
+    <div style="display:flex;justify-content:space-around;padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--border)">
+      <div class="client-stat-mini"><div class="num">${c.orders.length}</div><div class="lbl">Total Orders</div></div>
+      <div class="client-stat-mini"><div class="num" style="color:var(--sage)">${fmt(c.spend)}</div><div class="lbl">Lifetime Spend</div></div>
+      <div class="client-stat-mini"><div class="num" style="color:${c.balance>0?'var(--red)':'var(--sage)'}">${fmt(c.balance)}</div><div class="lbl">Outstanding</div></div>
+    </div>
+    <table class="data-table"><thead><tr><th>Delivery</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
+  `;
+  openModal('client-detail-modal');
+}
+
+// ─── MEASUREMENTS ─────────────────────────────────────────────
+let editMeasureName = null;
+let selectedGender = 'Female';
+function selectGender(g) {
+  selectedGender = g;
+  document.getElementById('gbtn-female').classList.toggle('selected', g === 'Female');
+  document.getElementById('gbtn-male').classList.toggle('selected', g === 'Male');
+  document.getElementById('male-extra-measurements').style.display = g === 'Male' ? 'block' : 'none';
+}
+function openMeasureModal(name = null) {
+  editMeasureName = name;
+  const m = name ? load(KEYS.measurements).find(x => x.name === name) : null;
+  document.getElementById('measure-modal-title').textContent = name ? `Edit: ${name}` : 'Add Measurements';
+  document.getElementById('m-name').value = m?.name || '';
+  document.getElementById('m-phone').value = m?.phone || '';
+  document.getElementById('m-date').value = m?.date || today();
+  document.getElementById('m-notes').value = m?.notes || '';
+  selectGender(m?.gender || 'Female');
+  const inputMap = { neck:'m-neck', shoulder:'m-shoulder', chest:'m-chest', bustPoint:'m-bust-point', underbust:'m-underbust', waist:'m-waist', hip:'m-hip', thigh:'m-thigh', knee:'m-knee', ankle:'m-ankle', crotch:'m-crotch', trouser:'m-trouser-len', sleeveShort:'m-sleeve-short', sleeveLong:'m-sleeve-long', bicep:'m-bicep', wrist:'m-wrist', topLen:'m-top-len', gownLen:'m-gown-len', skirtLen:'m-skirt-len', agbadaLen:'m-agbada-len', capSize:'m-cap-size' };
+  Object.entries(inputMap).forEach(([f, elId]) => { const el = document.getElementById(elId); if (el) el.value = m?.[f] || ''; });
+  populateClientDatalist();
+  openModal('measure-modal');
+}
+function saveMeasurement() {
+  const name = document.getElementById('m-name').value.trim();
+  if (!name) { toast('⚠️ Client name is required'); return; }
+  const measurements = load(KEYS.measurements);
+  const entry = {
+    name, gender: selectedGender,
+    phone: document.getElementById('m-phone').value.trim(),
+    date: document.getElementById('m-date').value,
+    notes: document.getElementById('m-notes').value.trim(),
+    neck: parseFloat(document.getElementById('m-neck').value) || '',
+    shoulder: parseFloat(document.getElementById('m-shoulder').value) || '',
+    chest: parseFloat(document.getElementById('m-chest').value) || '',
+    bustPoint: parseFloat(document.getElementById('m-bust-point').value) || '',
+    underbust: parseFloat(document.getElementById('m-underbust').value) || '',
+    waist: parseFloat(document.getElementById('m-waist').value) || '',
+    hip: parseFloat(document.getElementById('m-hip').value) || '',
+    thigh: parseFloat(document.getElementById('m-thigh').value) || '',
+    knee: parseFloat(document.getElementById('m-knee').value) || '',
+    ankle: parseFloat(document.getElementById('m-ankle').value) || '',
+    crotch: parseFloat(document.getElementById('m-crotch').value) || '',
+    trouser: parseFloat(document.getElementById('m-trouser-len').value) || '',
+    sleeveShort: parseFloat(document.getElementById('m-sleeve-short').value) || '',
+    sleeveLong: parseFloat(document.getElementById('m-sleeve-long').value) || '',
+    bicep: parseFloat(document.getElementById('m-bicep').value) || '',
+    wrist: parseFloat(document.getElementById('m-wrist').value) || '',
+    topLen: parseFloat(document.getElementById('m-top-len').value) || '',
+    gownLen: parseFloat(document.getElementById('m-gown-len').value) || '',
+    skirtLen: parseFloat(document.getElementById('m-skirt-len').value) || '',
+    agbadaLen: parseFloat(document.getElementById('m-agbada-len').value) || '',
+    capSize: parseFloat(document.getElementById('m-cap-size').value) || '',
+  };
+  const idx = measurements.findIndex(m => m.name === (editMeasureName || name));
+  if (idx > -1) measurements[idx] = entry; else measurements.push(entry);
+  save(KEYS.measurements, measurements);
+  closeModal('measure-modal');
+  renderMeasurements();
+  toast('✅ Measurements saved!');
+}
+function renderMeasurements() {
+  const measurements = load(KEYS.measurements);
+  const q = document.getElementById('measure-search')?.value.toLowerCase() || '';
+  const g = document.getElementById('measure-gender')?.value || '';
+  const filtered = measurements.filter(m => (!q || m.name.toLowerCase().includes(q)) && (!g || m.gender === g));
+  const grid = document.getElementById('measurements-grid');
+  const empty = document.getElementById('measurements-empty');
+  if (filtered.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = filtered.map(m => {
+    const rows = [];
+    if (m.chest) rows.push(['Chest/Bust', m.chest + '"']);
+    if (m.waist) rows.push(['Waist', m.waist + '"']);
+    if (m.hip) rows.push(['Hip', m.hip + '"']);
+    if (m.shoulder) rows.push(['Shoulder', m.shoulder + '"']);
+    if (m.sleeveLong) rows.push(['Sleeve (Long)', m.sleeveLong + '"']);
+    if (m.gownLen) rows.push(['Gown Length', m.gownLen + '"']);
+    if (m.agbadaLen) rows.push(['Agbada Length', m.agbadaLen + '"']);
+    return `<div class="section-block">
+      <div class="section-header" style="background:var(--gold-pale)">
+        <div><div style="font-family:'Fraunces',serif;font-size:15px;font-weight:700">${m.name}</div><div style="font-size:11px;color:var(--text-muted)">${m.gender} · Measured ${m.date || '—'}</div></div>
+        <div class="row-actions">
+          <button class="btn btn-ghost btn-sm" onclick="viewMeasurement('${m.name.replace(/'/g,"\\'")}')">View All</button>
+          <button class="btn btn-ghost btn-sm" onclick="openMeasureModal('${m.name.replace(/'/g,"\\'")}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('measurement','${m.name.replace(/'/g,"\\'")}')">Del</button>
+        </div>
+      </div>
+      <div class="section-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          ${rows.map(([l,v]) => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text-muted)">${l}</span><span style="font-family:'JetBrains Mono',monospace">${v}</span></div>`).join('')}
+        </div>
+        ${m.notes ? `<div style="margin-top:8px;font-size:11px;color:var(--ink-soft);background:var(--cream);padding:6px 8px;border-radius:6px">📝 ${m.notes}</div>` : ''}
+        ${m.phone ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">📞 ${m.phone}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function viewMeasurement(name) {
+  const m = load(KEYS.measurements).find(x => x.name === name);
+  if (!m) return;
+  document.getElementById('vm-title').textContent = m.name + ' — Full Measurements';
+  const groups = {
+    'Upper Body': [['Neck', m.neck], ['Shoulder', m.shoulder], ['Chest/Bust', m.chest], ['Bust Point', m.bustPoint], ['Underbust', m.underbust], ['Waist', m.waist]],
+    'Lower Body': [['Hip', m.hip], ['Thigh/Lap', m.thigh], ['Knee', m.knee], ['Ankle', m.ankle], ['Crotch/Seat', m.crotch], ['Trouser Length', m.trouser]],
+    'Arms & Sleeves': [['Sleeve (Short)', m.sleeveShort], ['Sleeve (Long)', m.sleeveLong], ['Bicep', m.bicep], ['Wrist', m.wrist]],
+    'Lengths': [['Top/Blouse', m.topLen], ['Gown', m.gownLen], ['Skirt', m.skirtLen], ['Agbada', m.agbadaLen], ['Cap Size', m.capSize]]
+  };
+  let html = `<div style="margin-bottom:8px;font-size:12px;color:var(--text-muted)">${m.gender} · Measured ${m.date || '—'} · ${m.phone || ''}</div>`;
+  for (const [group, rows] of Object.entries(groups)) {
+    const relevant = rows.filter(([,v]) => v !== '' && v !== undefined);
+    if (!relevant.length) continue;
+    html += `<div class="measure-section-title">${group}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">`;
+    html += relevant.map(([l,v]) => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 8px;background:var(--cream);border-radius:6px"><span style="color:var(--text-muted)">${l}</span><span style="font-family:'JetBrains Mono',monospace;font-weight:500">${v}"</span></div>`).join('');
+    html += '</div>';
+  }
+  if (m.notes) html += `<div style="margin-top:8px;background:var(--gold-pale);padding:10px;border-radius:8px;font-size:13px">📝 ${m.notes}</div>`;
+  document.getElementById('vm-body').innerHTML = html;
+  openModal('view-measure-modal');
+}
+
+// ─── JOB COSTING ──────────────────────────────────────────────
+let editCostId = null;
+function openCostModal(id) {
+  editCostId = id;
+  const orders = load(KEYS.orders);
+  const costs = load(KEYS.costs);
+  const o = orders.find(x => x.id === id);
+  const c = costs.find(x => x.id === id) || {};
+  document.getElementById('cost-modal-title').textContent = `Job Costs — ${o?.client}`;
+  document.getElementById('cost-modal-info').innerHTML = `<strong>${itemsSummary(o)}</strong> &nbsp;·&nbsp; Net Price: <strong>${fmt(orderTotal(o))}</strong>`;
+  document.getElementById('c-materials').value = c.materials || '';
+  document.getElementById('c-trims').value = c.trims || '';
+  document.getElementById('c-transport').value = c.transport || '';
+  openModal('cost-modal');
+}
+function saveCost() {
+  const costs = load(KEYS.costs);
+  const idx = costs.findIndex(c => c.id === editCostId);
+  const entry = { id: editCostId, materials: parseFloat(document.getElementById('c-materials').value) || 0, trims: parseFloat(document.getElementById('c-trims').value) || 0, transport: parseFloat(document.getElementById('c-transport').value) || 0 };
+  if (idx > -1) costs[idx] = entry; else costs.push(entry);
+  save(KEYS.costs, costs);
+  closeModal('cost-modal');
+  renderCosting();
+  toast('✅ Costs saved!');
+}
+function renderCosting() {
+  const orders = load(KEYS.orders);
+  const costs = load(KEYS.costs);
+  let totalRev = 0, totalCost = 0, totalProfit = 0;
+  document.getElementById('costing-tbody').innerHTML = orders.map(o => {
+    const c = costs.find(x => x.id === o.id) || { materials: 0, trims: 0, transport: 0 };
+    const cost = (c.materials || 0) + (c.trims || 0) + (c.transport || 0);
+    const netPrice = orderTotal(o);
+    const profit = netPrice - cost;
+    const margin = netPrice ? ((profit / netPrice) * 100).toFixed(0) : 0;
+    const isDone = o.status === 'Delivered' || o.status === 'Cancelled';
+    totalRev += netPrice; totalCost += cost; totalProfit += profit;
+    return `<tr style="${isDone ? 'opacity:0.55' : ''}">
+      <td style="color:var(--text-muted);font-family:'JetBrains Mono',monospace">#${o.id}</td>
+      <td>${o.client}</td>
+      <td style="font-size:12px">${itemsSummary(o)}</td>
+      <td>${statusBadge(o.status)}</td>
+      <td class="money-display">${fmt(netPrice)}</td>
+      <td class="money-display" style="color:var(--ink-soft)">${fmt(c.materials)}</td>
+      <td class="money-display" style="color:var(--ink-soft)">${fmt(c.trims)}</td>
+      <td class="money-display" style="color:var(--ink-soft)">${fmt(c.transport)}</td>
+      <td class="money-display" style="color:var(--red)">${fmt(cost)}</td>
+      <td class="money-display" style="color:${profit >= 0 ? 'var(--sage)' : 'var(--red)'}">${fmt(profit)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px">${margin}%</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openCostModal(${o.id})">Edit</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('cost-total-rev').textContent = fmt(totalRev);
+  document.getElementById('cost-total-cost').textContent = fmt(totalCost);
+  document.getElementById('cost-total-profit').textContent = fmt(totalProfit);
+}
+
+// ─── EXPENSES ─────────────────────────────────────────────────
+function openExpenseModal() {
+  document.getElementById('e-date').value = today();
+  document.getElementById('e-cat').value = 'Rent';
+  document.getElementById('e-desc').value = '';
+  document.getElementById('e-amount').value = '';
+  openModal('expense-modal');
+}
+function saveExpense() {
+  const date = document.getElementById('e-date').value;
+  const desc = document.getElementById('e-desc').value.trim();
+  const amount = parseFloat(document.getElementById('e-amount').value) || 0;
+  if (!date || !desc || !amount) { toast('⚠️ Please fill all fields'); return; }
+  const expenses = load(KEYS.expenses);
+  expenses.push({ id: nextId(expenses), date, category: document.getElementById('e-cat').value, description: desc, amount });
+  save(KEYS.expenses, expenses);
+  closeModal('expense-modal');
+  renderExpenses();
+  toast('✅ Expense saved!');
+}
+function renderExpenses() {
+  const expenses = load(KEYS.expenses);
+  const tbody = document.getElementById('expenses-tbody');
+  const empty = document.getElementById('expenses-empty');
+  if (expenses.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; } else {
+    empty.style.display = 'none';
+    tbody.innerHTML = [...expenses].sort((a,b) => b.date.localeCompare(a.date)).map(e =>
+      `<tr><td style="font-size:12px">${e.date}</td><td><span class="cat-pill">${e.category}</span></td><td>${e.description}</td><td class="money-display">${fmt(e.amount)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="confirmDelete('expense',${e.id})">Del</button></td></tr>`
+    ).join('');
+  }
+  const cats = {};
+  expenses.forEach(e => { cats[e.category] = (cats[e.category] || 0) + e.amount; });
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  document.getElementById('total-overheads').textContent = Number(total).toLocaleString('en-NG');
+  document.getElementById('expense-cats').innerHTML = Object.entries(cats).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => `
+    <div class="pl-row"><span style="font-size:13px">${cat}</span><span class="pl-amount money-display">${fmt(amt)}</span></div>`).join('') || '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">No expenses yet</div>';
+}
+
+// ─── P&L ──────────────────────────────────────────────────────
+function renderPnL() {
+  const orders = load(KEYS.orders);
+  const costs = load(KEYS.costs);
+  const expenses = load(KEYS.expenses);
+  const grossRevenue = orders.reduce((s, o) => s + orderItemsTotal(o), 0);
+  const discounts = orders.reduce((s, o) => s + orderDiscountAmount(o), 0);
+  const revenue = grossRevenue - discounts;
+  const directCosts = costs.reduce((s, c) => s + (c.materials || 0) + (c.trims || 0) + (c.transport || 0), 0);
+  const overheads = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const gross = revenue - directCosts;
+  const net = gross - overheads;
+  const margin = revenue ? ((net / revenue) * 100).toFixed(1) : 0;
+  document.getElementById('pl-gross-revenue').textContent = fmt(grossRevenue);
+  document.getElementById('pl-discounts').textContent = '−' + fmt(discounts);
+  document.getElementById('pl-revenue').textContent = fmt(revenue);
+  document.getElementById('pl-direct').textContent = fmt(directCosts);
+  document.getElementById('pl-gross').textContent = fmt(gross);
+  document.getElementById('pl-overheads').textContent = fmt(overheads);
+  document.getElementById('pl-net').textContent = fmt(net);
+  document.getElementById('pl-margin').textContent = margin + '%';
+  const cats = {};
+  expenses.forEach(e => { cats[e.category] = (cats[e.category] || 0) + e.amount; });
+  document.getElementById('pl-expense-breakdown').innerHTML = Object.entries(cats).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => `
+    <div class="pl-row"><span>${cat}</span><span class="pl-amount money-display">${fmt(amt)}</span></div>`).join('') || '<div style="color:var(--text-muted);font-size:13px">No expenses recorded</div>';
+}
+
+// ─── DELETE ───────────────────────────────────────────────────
+function confirmDelete(type, id) {
+  let label = '';
+  if (type === 'order') { const o = load(KEYS.orders).find(x => x.id === id); label = `order for ${o?.client} (${itemsSummary(o)})`; }
+  else if (type === 'measurement') { label = `measurements for ${id}`; }
+  else if (type === 'expense') { const e = load(KEYS.expenses).find(x => x.id === id); label = `expense: ${e?.description}`; }
+  else if (type === 'fabric') { const f = load(KEYS.fabrics).find(x => x.id === id); label = `material: ${f?.name}`; }
+  else if (type === 'staff') { const s = load(KEYS.staff).find(x => x.id === id); label = `staff member: ${s?.name}`; }
+  document.getElementById('delete-confirm-text').textContent = `Delete ${label}? This cannot be undone.`;
+  document.getElementById('delete-confirm-btn').onclick = () => {
+    if (type === 'order') {
+      save(KEYS.orders, load(KEYS.orders).filter(o => o.id !== id));
+      save(KEYS.costs, load(KEYS.costs).filter(c => c.id !== id));
+      renderOrders(); renderDashboard();
+    } else if (type === 'measurement') {
+      save(KEYS.measurements, load(KEYS.measurements).filter(m => m.name !== id)); renderMeasurements();
+    } else if (type === 'expense') {
+      save(KEYS.expenses, load(KEYS.expenses).filter(e => e.id !== id)); renderExpenses();
+    } else if (type === 'fabric') {
+      save(KEYS.fabrics, load(KEYS.fabrics).filter(f => f.id !== id)); renderInventory();
+    } else if (type === 'staff') {
+      save(KEYS.staff, load(KEYS.staff).filter(s => s.id !== id)); renderStaff();
+    }
+    closeModal('delete-modal');
+    toast('🗑️ Deleted');
+  };
+  openModal('delete-modal');
+}
+
+// ─── PIN LOCK ─────────────────────────────────────────────────
+const PIN_DOC_PATH = ['shops', SHOP_DOC, 'config', 'pin'];
+let pinEntry = '';
+let pinMode = 'checking'; // 'checking' | 'setup' | 'confirm' | 'unlock'
+let pinFirstEntry = '';
+let storedPinHash = null;
+
+function simpleHash(str) {
+  // Not cryptographic — just avoids storing the literal PIN in plaintext in Firestore.
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) { hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0; }
+  return String(hash);
+}
+
+function renderPinDots() {
+  const dots = document.querySelectorAll('#pin-dots .pin-dot');
+  dots.forEach((d, i) => d.classList.toggle('filled', i < pinEntry.length));
+}
+function shakePinDots() {
+  const wrap = document.getElementById('pin-dots');
+  wrap.classList.add('shake');
+  setTimeout(() => wrap.classList.remove('shake'), 400);
+}
+function pinPress(digit) {
+  if (pinMode === 'checking') {
+    document.getElementById('lock-error').textContent = 'Still connecting — one moment…';
+    return;
+  }
+  if (pinEntry.length >= 4) return;
+  pinEntry += digit;
+  renderPinDots();
+  if (pinEntry.length === 4) setTimeout(handlePinComplete, 150);
+}
+function pinClear() { pinEntry = ''; renderPinDots(); document.getElementById('lock-error').textContent = ''; }
+function pinBackspace() { pinEntry = pinEntry.slice(0, -1); renderPinDots(); }
+
+function handlePinComplete() {
+  const errEl = document.getElementById('lock-error');
+  if (pinMode === 'checking') {
+    errEl.textContent = 'Still connecting — try again in a second.';
+    pinEntry = ''; renderPinDots();
+    return;
+  }
+  if (pinMode === 'setup') {
+    pinFirstEntry = pinEntry;
+    pinEntry = '';
+    renderPinDots();
+    pinMode = 'confirm';
+    document.getElementById('lock-sub').textContent = 'Confirm your PIN';
+    return;
+  }
+  if (pinMode === 'confirm') {
+    if (pinEntry !== pinFirstEntry) {
+      errEl.textContent = "PINs didn't match — try again.";
+      shakePinDots();
+      pinEntry = ''; pinFirstEntry = ''; renderPinDots();
+      pinMode = 'setup';
+      document.getElementById('lock-sub').textContent = 'Choose a 4-digit PIN';
+      return;
+    }
+    const hash = simpleHash(pinEntry);
+    db.collection('shops').doc(SHOP_DOC).collection('config').doc('pin').set({ hash })
+      .then(() => { unlockApp(); })
+      .catch(() => { errEl.textContent = 'Could not save PIN — check your connection.'; pinEntry = ''; renderPinDots(); });
+    return;
+  }
+  if (pinMode === 'unlock') {
+    if (simpleHash(pinEntry) === storedPinHash) {
+      sessionStorage.setItem('tfh_unlocked', '1');
+      unlockApp();
+    } else {
+      errEl.textContent = 'Incorrect PIN. Try again.';
+      shakePinDots();
+      pinEntry = ''; renderPinDots();
+    }
+  }
+}
+
+function unlockApp() {
+  document.getElementById('lock-screen').classList.add('hidden');
+  document.getElementById('sidebar').style.display = 'flex';
+  document.getElementById('main').style.display = 'block';
+}
+
+function initPinGate() {
+  db.collection('shops').doc(SHOP_DOC).collection('config').doc('pin').get().then(docSnap => {
+    if (docSnap.exists && docSnap.data().hash) {
+      storedPinHash = docSnap.data().hash;
+      if (sessionStorage.getItem('tfh_unlocked') === '1') { unlockApp(); return; }
+      pinMode = 'unlock';
+      document.getElementById('lock-sub').textContent = 'Enter your PIN to continue';
+    } else {
+      pinMode = 'setup';
+      document.getElementById('lock-setup-note').style.display = 'block';
+      document.getElementById('lock-sub').textContent = 'Choose a 4-digit PIN';
+    }
+  }).catch(() => {
+    document.getElementById('lock-error').innerHTML = 'Could not reach the server. <span style="text-decoration:underline;cursor:pointer" onclick="initPinGate()">Tap to retry</span>';
+    document.getElementById('lock-sub').textContent = 'Connection problem';
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+initEmailJs();
+attachFirestoreListeners(() => {
+  seedData();
+  renderDashboard();
+  updateEmailNudge();
+});
+initPinGate();
+</script>
+</body>
+</html>
